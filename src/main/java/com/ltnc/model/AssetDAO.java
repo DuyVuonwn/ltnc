@@ -72,6 +72,60 @@ public class AssetDAO {
         }
     }
 
+    public void updateToolQuantityAfterStocktake(String assetId, int actualQty) {
+        String updateToolSql = "UPDATE tool SET quantity = ? WHERE asset_id = ? AND department_id = 'qtvt'";
+        String insertToolSql = "INSERT INTO tool (id, asset_id, department_id, quantity) VALUES (?, ?, 'qtvt', ?)";
+        String updateAssetSql = "UPDATE asset SET total_quantity = ? WHERE id = ?";
+
+        try (Connection conn = Database.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                // Check if tool record exists for qtvt department
+                String checkSql = "SELECT id FROM tool WHERE asset_id = ? AND department_id = 'qtvt'";
+                boolean exists = false;
+                try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                    checkStmt.setString(1, assetId);
+                    ResultSet rs = checkStmt.executeQuery();
+                    exists = rs.next();
+                }
+
+                // Update or insert tool record
+                if (exists) {
+                    try (PreparedStatement updateStmt = conn.prepareStatement(updateToolSql)) {
+                        updateStmt.setInt(1, actualQty);
+                        updateStmt.setString(2, assetId);
+                        updateStmt.executeUpdate();
+                    }
+                } else {
+                    String toolId = generateNextId("TOOL", "tool", "id");
+                    try (PreparedStatement insertStmt = conn.prepareStatement(insertToolSql)) {
+                        insertStmt.setString(1, toolId);
+                        insertStmt.setString(2, assetId);
+                        insertStmt.setInt(3, actualQty);
+                        insertStmt.executeUpdate();
+                    }
+                }
+
+                // Update asset total_quantity to match actual quantity
+                try (PreparedStatement assetStmt = conn.prepareStatement(updateAssetSql)) {
+                    assetStmt.setInt(1, actualQty);
+                    assetStmt.setString(2, assetId);
+                    assetStmt.executeUpdate();
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error updating tool quantity after stocktake: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     public void saveFixedAssetInventoryCheck(String itemId, String status, String userId) {
         String id = generateId("fixed_asset_inventory_check", "id", "FIC-");
         String sql = "INSERT INTO fixed_asset_inventory_check (id, fixed_asset_item_id, check_date, user_id, actual_status) "
@@ -87,6 +141,20 @@ public class AssetDAO {
             pstmt.executeUpdate();
         } catch (SQLException e) {
             System.err.println("Error saving fixed asset inventory check: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public void updateFixedAssetQuantityAfterStocktake(String assetId, int actualQty) {
+        String updateAssetSql = "UPDATE asset SET total_quantity = ? WHERE id = ?";
+
+        try (Connection conn = Database.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(updateAssetSql)) {
+            pstmt.setInt(1, actualQty);
+            pstmt.setString(2, assetId);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("Error updating fixed asset quantity after stocktake: " + e.getMessage());
             e.printStackTrace();
         }
     }

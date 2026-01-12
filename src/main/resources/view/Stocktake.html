@@ -681,6 +681,9 @@
                         if (stocktakeDetails[id]) {
                             data.push({
                                 id: id,
+                                name: asset.name,
+                                asset_category: asset.asset_category,
+                                base_unit: asset.base_unit,
                                 type: type,
                                 stock: stock,
                                 actual: actual,
@@ -691,6 +694,9 @@
                         // Tool
                         data.push({
                             id: id,
+                            name: asset.name,
+                            asset_category: asset.asset_category,
+                            base_unit: asset.base_unit,
                             type: type,
                             stock: stock,
                             actual: actual
@@ -712,10 +718,11 @@
             setTimeout(() => {
                 try {
                     const jsonStr = JSON.stringify(data);
-                    const result = window.javaBridge.completeStocktake(jsonStr);
+                    const result = window.javaBridge.completeStocktakeAndExport(jsonStr);
 
-                    if (result === "SUCCESS") {
-                        alert("Đã lưu kết quả kiểm kê thành công!");
+                    if (result && result.startsWith("SUCCESS")) {
+                        const filePath = result.split("|")[1];
+                        alert("Đã lưu kết quả kiểm kê và xuất file Excel thành công!\n\nFile được lưu tại: " + filePath);
                         // Simple page reload to reset state
                         window.location.reload();
 

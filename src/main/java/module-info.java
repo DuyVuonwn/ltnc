@@ -6,6 +6,8 @@ module com.ltnc {
     requires org.xerial.sqlitejdbc;
     requires jdk.jsobject;
     requires org.json;
+    requires org.apache.poi.ooxml;
+    requires org.apache.poi.poi;
 
     opens com.ltnc;
     opens com.ltnc.controller to javafx.fxml, javafx.web;
