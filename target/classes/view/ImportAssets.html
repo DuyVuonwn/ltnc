@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Cửa Sổ Nhập Tài Sản</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c71551",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#211116",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5dcdf;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display h-screen flex flex-col overflow-hidden">
+    <div
+        class="flex items-center justify-between px-8 py-6 border-b border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#2a1d21]">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-[#181113] dark:text-white text-2xl font-bold leading-tight">Nhập Kho Tài Sản</h1>
+            <p class="text-[#88636f] dark:text-[#bcaaa5] text-sm font-normal">Nhập thông tin cho tài sản và hàng hóa
+                nhập kho.</p>
+        </div>
+    </div>
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div class="max-w-[1120px] mx-auto w-full flex flex-col gap-8">
+            <div class="flex flex-col gap-4">
+                <h2 class="text-[#181113] dark:text-white text-lg font-semibold border-l-4 border-primary pl-3">
+                    Thông Tin Chứng Từ</h2>
+                <div
+                    class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#fcfcfc] dark:bg-[#251a1e] p-6 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40]">
+                    <label class="flex flex-col flex-1 group">
+                        <span
+                            class="text-[#181113] dark:text-white text-sm font-medium leading-normal pb-2 flex items-center gap-1">
+                            Mã Quyết Định <span class="text-primary">*</span>
+                        </span>
+                        <div class="relative">
+                            <input id="decisionNoInput" oninput="validateRows()"
+                                class="w-full rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white h-11 px-4 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow placeholder:text-[#88636f] text-sm"
+                                placeholder="Nhập mã quyết định..." type="text" />
+                        </div>
+                    </label>
+                    <label class="flex flex-col flex-1 group">
+                        <span
+                            class="text-[#181113] dark:text-white text-sm font-medium leading-normal pb-2 flex items-center gap-1">
+                            Nhà Cung Cấp <span class="text-primary">*</span>
+                        </span>
+                        <div class="relative">
+                            <input id="supplierInput" oninput="validateRows()"
+                                class="w-full rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white h-11 px-4 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow placeholder:text-[#88636f] text-sm"
+                                placeholder="Nhập nhà cung cấp..." type="text" />
+                        </div>
+                    </label>
+                    <label class="flex flex-col flex-1 group">
+                        <span
+                            class="text-[#181113] dark:text-white text-sm font-medium leading-normal pb-2 flex items-center gap-1">
+                            Ngày Nhập <span class="text-primary">*</span>
+                        </span>
+                        <div class="relative">
+                            <input id="importDateInput"
+                                class="w-full rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white h-11 px-4 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow placeholder:text-[#88636f] text-sm"
+                                type="date" />
+                        </div>
+                    </label>
+                </div>
+            </div>
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <h2 class="text-[#181113] dark:text-white text-lg font-semibold border-l-4 border-primary pl-3">
+                        Chi Tiết Tài Sản</h2>
+                    <div class="flex gap-3">
+                        <button onclick="addRow()"
+                            class="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-[#35262b] border border-[#e5dcdf] dark:border-[#4a3b40] text-[#181113] dark:text-white hover:bg-[#f8f6f6] hover:border-primary transition-all text-sm font-medium shadow-sm">
+                            <span class="material-symbols-outlined text-[18px] text-primary">add_circle</span>
+                            Thêm Dòng
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-hidden rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] shadow-sm">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-sm whitespace-nowrap table-fixed">
+                            <thead
+                                class="bg-[#fcfcfc] dark:bg-[#251a1e] border-b border-[#e5dcdf] dark:border-[#4a3b40]">
+                                <tr>
+                                    <th class="p-4 w-12 text-center">
+                                        <span class="text-[#88636f] font-medium">STT</span>
+                                    </th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-1/4">Tên Tài Sản</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-1/5">Nhà Sản Xuất</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-32">Loại Tài Sản</th>
+
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-32 text-right">
+                                        Số Lượng</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-24 text-center">
+                                        Đơn vị</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-32 text-right">
+                                        Đơn Giá (VNĐ)</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white text-center w-24">Chi
+                                        Tiết</th>
+
+                                    <th class="p-4 w-12 text-center">
+                                        <span
+                                            class="material-symbols-outlined text-[18px] text-[#88636f]">settings</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="assetTableBody"
+                                class="divide-y divide-[#e5dcdf] dark:divide-[#4a3b40] bg-white dark:bg-[#2a1d21]">
+                                <!-- Rows will be generated by JS -->
+                            </tbody>
+                            <tfoot
+                                class="bg-[#fcfcfc] dark:bg-[#251a1e] border-t border-[#e5dcdf] dark:border-[#4a3b40]">
+                                <tr>
+                                    <td class="p-4" colspan="4">
+                                        <span class="text-sm font-semibold text-[#181113] dark:text-white">Tổng Giá Trị
+                                            Dự Kiến</span>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                    <td class="p-4 text-right">
+                                        <span class="text-sm font-medium text-[#88636f]" id="totalItems">0 mục</span>
+                                    </td>
+                                    <td class="p-4 text-right">
+                                    <td class="p-4 text-right">
+                                        <span class="text-sm font-bold text-primary font-mono" id="totalValue">0
+                                            VNĐ</span>
+                                    </td>
+                                    <td class="p-4" colspan="3"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div
+            class="flex items-center justify-between px-8 py-6 bg-[#fcfcfc] dark:bg-[#251a1e] border-t border-[#e5dcdf] dark:border-[#4a3b40]">
+
+        </div>
+        <div class="flex items-center gap-4">
+            <button
+                class="px-6 py-2.5 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] text-[#181113] dark:text-white text-sm font-medium hover:bg-[#f4f0f2] dark:hover:bg-[#35262b] transition-colors focus:outline-none focus:ring-2 focus:ring-[#e5dcdf] shadow-sm">
+                Hủy Bỏ
+            </button>
+            <button id="saveButton" disabled
+                class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-[#2a1d21] shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                Xác Nhận
+            </button>
+
+        </div>
+    </div>
+
+    <!-- Asset Details Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeDetailModal()">
+        </div>
+
+        <!-- Modal Content -->
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div
+                class="bg-white dark:bg-[#201619] rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col transform transition-all scale-100">
+                <!-- Header -->
+                <div class="flex items-center justify-between p-6 border-b border-[#e5dcdf] dark:border-[#4a3b40]">
+                    <div>
+                        <h3 class="text-xl font-bold text-[#181113] dark:text-white">Chi Tiết Tài Sản</h3>
+                        <p class="text-sm text-[#88636f] mt-1" id="modalAssetName">Đang nhập chi tiết cho: <span
+                                class="font-medium text-primary">...</span></p>
+                    </div>
+                    <button onclick="closeDetailModal()"
+                        class="text-[#88636f] hover:text-[#181113] dark:hover:text-white p-2 rounded-full hover:bg-[#f4f0f2] dark:hover:bg-[#35262b] transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Body (Scrollable) -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <div class="overflow-hidden rounded-xl border border-[#e5dcdf] dark:border-[#4a3b40]">
+                        <table class="w-full text-left border-collapse">
+                            <thead
+                                class="bg-[#fcfcfc] dark:bg-[#251a1e] border-b border-[#e5dcdf] dark:border-[#4a3b40]">
+                                <tr>
+                                    <th
+                                        class="p-4 text-center text-xs font-medium text-[#88636f] uppercase tracking-wider w-16">
+                                        STT</th>
+                                    <th
+                                        class="p-4 text-left text-xs font-medium text-[#88636f] uppercase tracking-wider w-1/4">
+                                        Tên Tài Sản</th>
+                                    <th
+                                        class="p-4 text-left text-xs font-medium text-[#88636f] uppercase tracking-wider w-1/4">
+                                        Serial / Mã Định Danh</th>
+                                    <th
+                                        class="p-4 text-left text-xs font-medium text-[#88636f] uppercase tracking-wider w-24">
+                                        Năm SX</th>
+                                    <th
+                                        class="p-4 text-left text-xs font-medium text-[#88636f] uppercase tracking-wider">
+                                        Ghi Chú</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailTableBody"
+                                class="divide-y divide-[#e5dcdf] dark:divide-[#4a3b40] bg-white dark:bg-[#2a1d21]">
+                                <!-- Rows generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Footer -->
+                <div
+                    class="p-6 border-t border-[#e5dcdf] dark:border-[#4a3b40] flex justify-end gap-3 bg-[#fcfcfc] dark:bg-[#251a1e] rounded-b-2xl">
+                    <button onclick="closeDetailModal()"
+                        class="px-5 py-2.5 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] text-[#181113] dark:text-white text-sm font-medium hover:bg-white dark:hover:bg-[#35262b] transition-colors">
+                        Hủy Bỏ
+                    </button>
+                    <button onclick="saveDetails()"
+                        class="px-5 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+                        Xác Nhận & Lưu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="icons.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Set Import Date to Today
+            const dateInput = document.getElementById('importDateInput');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+
+            // Initialize with one row
+            addRow();
+        });
+
+        // Global storage for details: { rowIndex: [ {serial: "", note: "", manufactureYear: 2024}, ... ] }
+        let rowDetails = {};
+        let currentRowIndex = -1;
+
+        function addRow() {
+            const tbody = document.getElementById('assetTableBody');
+            const rowCount = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-[#fcfcfc] dark:hover:bg-[#35292d] transition-colors group";
+            tr.innerHTML = `
+                <td class="p-4 text-center text-[#88636f] text-xs pt-5">${rowCount}</td>
+                <td class="p-4">
+                    <div class="relative">
+                        <input oninput="handleNameInput(this)"
+                            class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60 transition-colors required-field asset-name"
+                            placeholder="VD: Găng tay y tế" type="text" />
+                    </div>
+                </td>
+                <td class="p-4">
+                    <div class="relative">
+                        <input oninput="validateRows()"
+                            class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60 transition-colors asset-vendor"
+                            placeholder="Nhà Sản Xuất..." type="text" />
+                    </div>
+                </td>
+                <td class="p-4">
+                    <div class="relative">
+                        <select onchange="validateRows(); toggleDetails(this)"
+                            class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary outline-none appearance-none transition-shadow required-field asset-type">
+                            <option value="" disabled selected>Chọn loại...</option>
+                            <option value="CCDC">CCDC</option>
+                            <option value="TSCD">TSCD</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#88636f]">
+                            <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="p-4">
+                    <input oninput="validateRows()"
+                        class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-right text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60 transition-colors font-mono required-field asset-qty"
+                        placeholder="0" type="number" />
+                </td>
+                <td class="p-4">
+                    <div class="relative">
+                        <select onchange="validateRows()"
+                            class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary outline-none appearance-none transition-shadow required-field asset-unit">
+                            <option value="" disabled selected>Chọn...</option>
+                            <option value="Cái">Cái</option>
+                            <option value="Lọ">Lọ</option>
+                            <option value="Hộp">Hộp</option>
+                            <option value="Kg">Kg</option>
+                            <option value="Mét">Mét</option>
+                            <option value="Bình">Bình</option>
+                        </select>
+
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[#88636f]">
+                            <span class="material-symbols-outlined text-[18px]">expand_more</span>
+                        </div>
+                    </div>
+                </td>
+                <td class="p-4">
+                    <input oninput="validateRows()"
+                        class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-right text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60 transition-colors font-mono required-field asset-price"
+                        placeholder="0 VNĐ" type="text" />
+                </td>
+                <td class="p-4 text-center">
+                    <button onclick="openDetailModal(this)" class="detail-link hidden text-sm text-primary hover:text-primary/80 hover:underline font-medium flex items-center justify-center gap-1 transition-colors">
+                        Chỉnh sửa
+                    </button>
+                    <span class="no-detail text-xs text-[#88636f]/50 italic text-center block w-full">-</span>
+                </td>
+                </td>
+
+                <td class="p-4 align-middle text-center">
+                    <button onclick="deleteRow(this)"
+                        class="text-[#88636f] hover:text-[#d32f2f] hover:bg-[#ffebee] rounded p-2 transition-all">
+                        <span class="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            validateRows();
+        }
+
+        function deleteRow(btn) {
+            const row = btn.closest('tr');
+            const index = Array.from(row.parentNode.children).indexOf(row);
+
+            // Clean up details
+            delete rowDetails[index];
+
+            // Re-indexing rowDetails
+            // Logic: if row i is removed, row i+1 becomes i.
+            // Move data from i+1 to i, i+2 to i+1, etc.
+            const tbody = document.getElementById('assetTableBody');
+            const totalRows = tbody.children.length; // Before removal? No, btn.closest is still in DOM.
+            // Actually this delete logic for object keys is tricky.
+            // Simplest way: Destroy all details for indices >= index. 
+            // Better: Shift data.
+
+            // We need to shift keys in rowDetails
+            // Get all keys as integers, sort ascending
+            const keys = Object.keys(rowDetails).map(Number).sort((a, b) => a - b);
+
+            // Remove current index
+            delete rowDetails[index];
+
+            // Shift subsequent keys down by 1
+            const newRowDetails = {};
+            // Copy keys < index
+            keys.forEach(k => {
+                if (k < index) {
+                    newRowDetails[k] = rowDetails[k];
+                } else if (k > index) {
+                    newRowDetails[k - 1] = rowDetails[k];
+                }
+            });
+            rowDetails = newRowDetails;
+
+            row.remove();
+            validateRows();
+            updateIndexes();
+        }
+
+        function toggleDetails(select) {
+            const row = select.closest('tr');
+            const detailLink = row.querySelector('.detail-link');
+            const noDetail = row.querySelector('.no-detail');
+
+            if (select.value === 'TSCD') {
+                detailLink.classList.remove('hidden');
+                noDetail.classList.add('hidden');
+            } else {
+                detailLink.classList.add('hidden');
+                noDetail.classList.remove('hidden');
+            }
+        }
+
+        function openDetailModal(btn) {
+            const row = btn.closest('tr');
+            const nameInput = row.querySelector('.asset-name');
+            const qtyInput = row.querySelector('.asset-qty');
+
+            const name = nameInput.value.trim() || "Tài sản chưa đặt tên";
+            const qty = parseInt(qtyInput.value) || 0;
+
+            if (qty <= 0) {
+                alert("Vui lòng nhập số lượng lớn hơn 0 trước khi nhập chi tiết.");
+                return;
+            }
+
+            const index = Array.from(row.parentNode.children).indexOf(row);
+            currentRowIndex = index;
+
+            document.getElementById('modalAssetName').querySelector('span').textContent = name;
+
+            const tbody = document.getElementById('detailTableBody');
+            tbody.innerHTML = '';
+
+            // Get existing or init new
+            const currentDetails = rowDetails[index] || [];
+            const currentYear = new Date().getFullYear();
+
+            for (let i = 0; i < qty; i++) {
+                const detail = currentDetails[i] || { serial: '', note: '', manufactureYear: '' };
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#fcfcfc] dark:hover:bg-[#35292d] transition-colors border-b border-[#e5dcdf] dark:border-[#4a3b40]";
+                tr.innerHTML = `
+                    <td class="p-3 text-center text-[#88636f] text-xs">${i + 1}</td>
+                    <td class="p-3 text-sm text-[#181113] dark:text-white font-medium">${name}</td>
+                    <td class="p-3">
+                        <input type="text" class="detail-serial w-full h-9 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60"
+                            placeholder="Nhập Serial..." value="${detail.serial}">
+                    </td>
+                    <td class="p-3">
+                        <input type="number" class="detail-year w-full h-9 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60"
+                            placeholder="Năm SX" value="${detail.manufactureYear || ''}">
+                    </td>
+                    <td class="p-3">
+                        <input type="text" class="detail-note w-full h-9 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60"
+                            placeholder="Ghi chú..." value="${detail.note}">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function saveDetails() {
+            if (currentRowIndex === -1) return;
+
+            const tbody = document.getElementById('detailTableBody');
+            const rows = tbody.querySelectorAll('tr');
+            const details = [];
+            const serials = new Set();
+
+            for (const row of rows) {
+                const serialInput = row.querySelector('.detail-serial');
+                const yearInput = row.querySelector('.detail-year');
+                const noteInput = row.querySelector('.detail-note');
+                const serial = serialInput.value.trim();
+
+                if (!serial) {
+                    alert("Vui lòng nhập đầy đủ Serial cho tất cả các mục.");
+                    serialInput.focus();
+                    return;
+                }
+
+                if (serials.has(serial)) {
+                    alert(`Serial '${serial}' bị trùng lặp trong danh sách này. Vui lòng kiểm tra lại.`);
+                    serialInput.focus();
+                    return;
+                }
+                serials.add(serial);
+
+                details.push({
+                    serial: serial,
+                    manufactureYear: parseInt(yearInput.value) || new Date().getFullYear(),
+                    note: noteInput.value.trim()
+                });
+            }
+
+            rowDetails[currentRowIndex] = details;
+
+            // Re-validate global logic to update Save button styling
+            closeDetailModal();
+            validateRows();
+        }
+
+        function updateIndexes() {
+            const rows = document.querySelectorAll('#assetTableBody tr');
+            rows.forEach((row, index) => {
+                row.querySelector('td:first-child').textContent = index + 1;
+            });
+        }
+
+        function validateRows() {
+            const rows = document.querySelectorAll('#assetTableBody tr');
+            let allValid = true;
+            let hasAtLeastOneRow = rows.length > 0;
+            let hasValidDataRow = false;
+
+            let totalItems = 0;
+            let totalValue = 0;
+
+            rows.forEach((row, index) => {
+                const inputs = row.querySelectorAll('.required-field');
+                let isRowEmpty = true;
+
+                // Check if row is mostly empty (all required fields empty)
+                inputs.forEach(input => {
+                    if (input.value.trim() !== '') {
+                        isRowEmpty = false;
+                    }
+                });
+
+                // Special check: If TSCD, select might be TSCD but Name/Qty empty.
+                // If Name/Qty empty, consider empty even if Select TSCD?
+                // Logic: If Name is empty, it's empty row.
+                // But select has default "TSCD" or "CCDC" usually... no, I changed default to "Choose..."
+                // So if select is "" and inputs "" -> Empty.
+
+                if (isRowEmpty) {
+                    inputs.forEach(input => {
+                        input.classList.remove('border-red-500');
+                        input.classList.add('border-[#e5dcdf]', 'dark:border-[#4a3b40]');
+                    });
+
+                    // Reset link style for empty row
+                    const detailLink = row.querySelector('.detail-link');
+                    if (detailLink) {
+                        detailLink.classList.remove('text-red-500');
+                        detailLink.classList.add('text-primary');
+                        detailLink.textContent = "Chỉnh sửa";
+                    }
+
+                    return; // Ignore empty rows
+                }
+
+                hasValidDataRow = true;
+
+                // 1. Basic Field Validation
+                inputs.forEach(input => {
+                    if (input.value.trim() === '') {
+                        input.classList.remove('border-[#e5dcdf]', 'dark:border-[#4a3b40]');
+                        input.classList.add('border-red-500');
+                        allValid = false;
+                    } else {
+                        input.classList.remove('border-red-500');
+                        input.classList.add('border-[#e5dcdf]', 'dark:border-[#4a3b40]');
+                    }
+                });
+
+                // 2. TSCD Detail Validation
+                const typeSelect = row.querySelector('.asset-type');
+                const detailLink = row.querySelector('.detail-link');
+
+                if (typeSelect && typeSelect.value === 'TSCD') {
+                    const qty = parseInt(row.querySelector('.asset-qty').value) || 0;
+                    const details = rowDetails[index];
+
+                    // Check if details exist and match quantity (and verify they are valid?)
+                    // saveDetails() ensures validity (non-empty serials), so just checking presence length is enough.
+                    let detailsValid = details && details.length === qty;
+                    // Double check internal consistency just in case
+                    if (detailsValid) {
+                        for (let d of details) {
+                            if (!d.serial || d.serial.trim() === '') {
+                                detailsValid = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!detailsValid) {
+                        console.warn(`Row ${index} validation failed: Qty=${qty}, DetailsLen=${details ? details.length : 'undefined'}`);
+                        allValid = false;
+                        detailLink.classList.add('text-red-500');
+                        detailLink.classList.remove('text-primary');
+                        detailLink.textContent = "Chưa nhập đủ!";
+                    } else {
+                        detailLink.classList.remove('text-red-500');
+                        detailLink.classList.add('text-primary');
+                        detailLink.textContent = "Chỉnh sửa";
+                    }
+                } else if (typeSelect && typeSelect.value !== 'TSCD') {
+                    // Reset if switched away from TSCD
+                    if (detailLink) {
+                        detailLink.classList.remove('text-red-500');
+                        detailLink.classList.add('text-primary');
+                        detailLink.textContent = "Chỉnh sửa";
+                    }
+                }
+
+                // Calc totals (simplified)
+                const qty = parseFloat(row.querySelector('.asset-qty').value) || 0;
+                // 0: Name, 1: Select, 2: Qty, 3: Unit, 4: Price
+                const priceInput = row.querySelector('.asset-price');
+                const priceStr = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : "0";
+                const price = parseFloat(priceStr) || 0;
+
+                totalItems += qty;
+                totalValue += qty * price;
+            });
+
+            document.getElementById('totalItems').textContent = `${totalItems} mục`;
+            // formatting VND
+            document.getElementById('totalValue').textContent = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalValue);
+
+            // Check Header Fields
+            const decisionInput = document.getElementById('decisionNoInput');
+            const supplierInput = document.getElementById('supplierInput');
+
+            if (!decisionInput.value.trim() || !supplierInput.value.trim()) {
+                allValid = false;
+            }
+
+            const saveBtn = document.getElementById('saveButton');
+            if (hasAtLeastOneRow && hasValidDataRow && allValid) {
+                saveBtn.removeAttribute('disabled');
+            } else {
+                saveBtn.setAttribute('disabled', 'true');
+            }
+        }
+
+
+
+        // Add saveImport function
+        function saveImport() {
+            const saveBtn = document.getElementById('saveButton');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">progress_activity</span> Đang lưu...';
+
+            const rows = document.querySelectorAll('#assetTableBody tr');
+            const items = [];
+
+            // Header Data
+            const decisionNo = document.getElementById('decisionNoInput').value.trim();
+            const supplier = document.getElementById('supplierInput').value.trim();
+
+            rows.forEach((row, index) => {
+                const name = row.querySelector('.asset-name').value.trim();
+                const type = row.querySelector('.asset-type').value;
+                const qty = parseInt(row.querySelector('.asset-qty').value) || 0;
+                const unit = row.querySelector('.asset-unit').value;
+                const vendor = row.querySelector('.asset-vendor').value.trim(); // Get Vendor
+
+
+                // Get Price
+                const priceInput = row.querySelector('.asset-price');
+                // Note: I added asset-price class in previous chunk. 
+                // If it fails, fallback to inputs[3] logic or row.querySelectorAll('.required-field')[3]
+                // But let's assume class added.
+                const priceStr = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : "0";
+                const price = parseFloat(priceStr) || 0;
+
+                if (!name || !type || qty <= 0) return; // Should not happen if validated
+
+                let item = {
+                    name: name,
+                    type: type,
+                    qty: qty,
+                    unit: unit,
+                    price: price,
+                    vendor: vendor, // Send Vendor
+                    details: []
+                };
+
+
+                if (type === 'TSCD') {
+                    if (rowDetails[index]) {
+                        item.details = rowDetails[index];
+                    }
+                }
+
+                items.push(item);
+            });
+
+            // Wrap Data
+            const payload = {
+                meta: {
+                    decisionNo: decisionNo,
+                    supplier: supplier
+                },
+                items: items
+            };
+
+            // Call Java
+            if (window.javaBridge && window.javaBridge.saveImportItems) {
+                // Must stringify
+                const response = window.javaBridge.saveImportItems(JSON.stringify(payload));
+
+                if (response === "SUCCESS") {
+                    alert("Lưu phiếu nhập thành công!");
+                    // Close Window
+                    if (window.javaBridge.closeWindow) {
+                        window.javaBridge.closeWindow();
+                    }
+                } else {
+                    alert("Lỗi khi lưu: " + response);
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = '<span class="material-symbols-outlined">save</span> Lưu Phiếu';
+                }
+            } else {
+                console.log("Mock Save (No Java):", payload);
+                alert("Saved (Mock)!");
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Attach to button
+        document.getElementById('saveButton').onclick = saveImport;
+
+        // Autocomplete Logic
+        let searchTimeout = null;
+
+        function handleNameInput(input) {
+            validateRows(); // Existing validation
+
+            // Debounce search
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            const query = input.value.trim();
+            const wrapper = input.parentElement;
+
+            // Remove existing dropdown if any
+            const existingDropdown = wrapper.querySelector('.suggestions-dropdown');
+            if (existingDropdown) existingDropdown.remove();
+
+            if (query.length < 1) return;
+
+            searchTimeout = setTimeout(() => {
+                if (window.javaBridge && window.javaBridge.searchAssets) {
+                    try {
+                        const json = window.javaBridge.searchAssets(query);
+                        const results = JSON.parse(json);
+                        if (results.length > 0) {
+                            showSuggestions(input, results);
+                        }
+                    } catch (e) {
+                        console.error("Search error:", e);
+                    }
+                }
+            }, 300);
+        }
+
+        function showSuggestions(input, results) {
+            const wrapper = input.parentElement;
+
+            // Re-check/cleaning
+            const existing = wrapper.querySelector('.suggestions-dropdown');
+            if (existing) existing.remove();
+
+            const dropdown = document.createElement('div');
+            // Fix: min-w-[350px] to show long names, shadow-xl for better visibility
+            dropdown.className = "suggestions-dropdown absolute top-full left-0 min-w-[350px] bg-white dark:bg-[#35262b] border border-[#e5dcdf] dark:border-[#4a3b40] rounded-lg shadow-xl z-50 mt-1 max-h-60 overflow-y-auto";
+
+
+            results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "px-3 py-2 hover:bg-[#f8f6f6] dark:hover:bg-[#2a1d21] cursor-pointer text-sm text-[#181113] dark:text-white flex flex-col";
+                // Show Vendor in suggestion
+                const vendorDisplay = item.manufacturer ? ` - ${item.manufacturer}` : '';
+                div.innerHTML = `<span class="font-medium">${item.name}<span class="text-[#88636f] text-xs font-normal">${vendorDisplay}</span></span>`;
+                div.onclick = () => selectSuggestion(input, item);
+                dropdown.appendChild(div);
+
+            });
+
+            wrapper.appendChild(dropdown);
+
+            // Click outside to close - naive implementation
+            // Ideally we use a global listener, but for now this is okay if we handle blur properly?
+            // Blur often fires before click. Using mousedown on item is safer, or explicit bg overlay.
+            // Let's use a document listener that removes ALL dropdowns if click is not inside one.
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.suggestions-dropdown') && !e.target.closest('.asset-name')) {
+                document.querySelectorAll('.suggestions-dropdown').forEach(el => el.remove());
+            }
+        });
+
+        function selectSuggestion(input, item) {
+            const row = input.closest('tr');
+
+            // Fill Name
+            input.value = item.name;
+
+            // Fill Vendor if exists
+            const vendorInput = row.querySelector('.asset-vendor');
+            if (vendorInput) {
+                vendorInput.value = item.manufacturer || "";
+            }
+
+            // Fill Type
+            const typeSelect = row.querySelector('.asset-type');
+            if (typeSelect && item.type) {
+                let typeToSelect = item.type;
+                // Normalize DB type to UI value
+                if (typeToSelect === 'TOOL') typeToSelect = 'CCDC';
+                if (typeToSelect === 'FIXED_ASSET') typeToSelect = 'TSCD';
+
+                typeSelect.value = typeToSelect;
+                toggleDetails(typeSelect);
+            }
+
+            // Fill Unit
+            const unitSelect = row.querySelector('.asset-unit');
+            if (unitSelect && item.base_unit) {
+                // Check if option exists
+                const options = Array.from(unitSelect.options).map(o => o.value);
+                if (options.includes(item.base_unit)) {
+                    unitSelect.value = item.base_unit;
+                } else {
+                    // Add new option if missing
+                    const opt = document.createElement('option');
+                    opt.value = item.base_unit;
+                    opt.textContent = item.base_unit;
+                    unitSelect.appendChild(opt);
+                    unitSelect.value = item.base_unit;
+                }
+            }
+
+            // Clean up
+            document.querySelectorAll('.suggestions-dropdown').forEach(el => el.remove());
+            validateRows();
+        }
+
+    </script>
+</body>
+
+</html>

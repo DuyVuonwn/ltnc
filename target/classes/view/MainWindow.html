@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html class="light" lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Main Window - Quản lý Kho</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c61559", // Using the config's primary which is very close to user's request
+                        "primary-hover": "#a5114a",
+                        "background-light": "#fcf8fa",
+                        "background-dark": "#211117",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#2d1b22",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-[#1b0e13] dark:text-gray-100 min-h-screen flex flex-col font-display">
+    <header
+        class="sticky top-0 z-30 flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f3e7ec] bg-white dark:bg-surface-dark px-6 py-4 shadow-sm">
+        <div class="flex items-center gap-4 text-[#1b0e13] dark:text-white">
+            <div class="size-8 text-primary flex items-center justify-center bg-primary/10 rounded-lg">
+                <span class="material-symbols-outlined text-2xl">local_hospital</span>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white">MedStock
+                </h1>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Hệ thống Quản lý Kho Y Tế</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-6">
+            <div
+                class="hidden md:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-100 dark:border-gray-700">
+                <span class="material-symbols-outlined text-gray-400 text-lg">calendar_today</span>
+                <span>Hôm nay: <span class="js-date-now">03/01/2026</span></span>
+            </div>
+            <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
+            <div class="flex items-center gap-3">
+                <div class="flex flex-col items-end">
+                    <span class="text-sm font-bold text-gray-900 dark:text-white">Vương Đức Duy</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">Phòng QT&VT</span>
+                </div>
+                <div class="relative group cursor-pointer">
+                    <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-primary/20"
+                        data-alt="Portrait of a doctor in white coat"
+                        style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCv8BqG0u-LzCI96jyrgi5Nzh2uyCCpDu363H-bP3FjBMHNWAAiyk5EnI08OS2dP263fpbK35qhWKoO2STmHWL3-UsteWS8QTLfmv72S-nsAPFpXyop0A5QsIaGRdiLgzMbk-olNao_3gRoOdPzOuh6P6B9AdCo6pyXLxRbbmLIH7cBmQNwx3wNcCuOU9W3kV8sXS9zWI0kOQNmipxyjZheyelbU3Q7O126JAVacSoP6JNL5bT-j5HJw8jYUO_yXLM9xmROAlXeKHPa");'>
+                    </div>
+                    <div
+                        class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 hidden group-hover:block border border-gray-100 dark:border-gray-700">
+                        <a class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            href="#">Hồ sơ</a>
+                        <a class="block px-4 py-2 text-sm text-primary font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
+                            href="#">Đăng xuất</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <div class="flex flex-1 overflow-hidden">
+        <main class="flex-1 flex flex-col overflow-hidden bg-background-light dark:bg-background-dark">
+            <div class="px-6 py-6 border-b border-[#f3e7ec] bg-white dark:bg-surface-dark">
+                <div class="max-w-[1400px] mx-auto w-full">
+                    <div class="flex flex-col gap-6">
+                        <div class="flex flex-wrap gap-3">
+                            <button onclick="if(window.javaBridge) { window.javaBridge.importAssets(); loadAssets(); }"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary hover:bg-primary-hover text-white text-sm font-bold leading-normal tracking-[0.015em] transition-colors shadow-sm shadow-primary/20">
+                                <span class="material-symbols-outlined text-[20px]">add_box</span>
+                                <span class="truncate">Nhập kho</span>
+                            </button>
+                            <button onclick="if(window.javaBridge) javaBridge.openHandoverWindow()"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold leading-normal transition-colors">
+                                <span
+                                    class="material-symbols-outlined text-[20px] text-gray-500">assignment_return</span>
+                                <span class="truncate">Bàn giao</span>
+                            </button>
+                            <button onclick="if(window.javaBridge) javaBridge.reportDamage()"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold leading-normal transition-colors">
+                                <span class="material-symbols-outlined text-[20px] text-gray-500">report_problem</span>
+                                <span class="truncate">Báo hỏng</span>
+                            </button>
+                            <button onclick="if(window.javaBridge) javaBridge.performLiquidation()"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-bold leading-normal transition-colors">
+                                <span class="material-symbols-outlined text-[20px] text-gray-500">delete_forever</span>
+                                <span class="truncate">Thanh lý</span>
+                            </button>
+                            <div class="w-px h-10 bg-gray-200 dark:bg-gray-700 mx-2 hidden sm:block"></div>
+                            <button onclick="if(window.javaBridge) javaBridge.performStocktake()"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary/5 hover:bg-primary/10 text-primary dark:text-white text-sm font-bold leading-normal transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">fact_check</span>
+                                <span class="truncate">Kiểm kê tài sản</span>
+                            </button>
+                            <button onclick="if(window.javaBridge) javaBridge.viewReports()"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-primary/5 hover:bg-primary/10 text-primary dark:text-white text-sm font-bold leading-normal transition-colors">
+                                <span class="material-symbols-outlined text-[20px]">analytics</span>
+                                <span class="truncate">Báo cáo</span>
+                            </button>
+                            <!-- Debug Button -->
+                            <button onclick="if(window.javaBridge) javaBridge.viewDatabase()"
+                                class="flex items-center justify-center gap-2 rounded-lg h-10 px-5 bg-gray-800 hover:bg-gray-900 text-white text-sm font-bold leading-normal transition-colors ml-2"
+                                title="Debug Database">
+                                <span class="material-symbols-outlined text-[20px]">database</span>
+                                <span class="truncate hidden md:inline">DB</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div
+                                class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                                <div
+                                    class="size-12 flex items-center justify-center rounded-full bg-primary/10 text-primary dark:text-white">
+                                    <span class="material-symbols-outlined text-2xl">inventory_2</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Tổng số hàng</p>
+                                    <p id="stat-total-stock" class="text-2xl font-bold text-gray-900 dark:text-white">
+                                        ...</p>
+                                </div>
+                            </div>
+                            <div
+                                class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                                <div
+                                    class="size-12 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 dark:text-blue-400">
+                                    <span class="material-symbols-outlined text-2xl">assignment_turned_in</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 font-medium">Số lượng đã bàn giao
+                                    </p>
+                                    <p id="stat-total-handover"
+                                        class="text-2xl font-bold text-gray-900 dark:text-white">...</p>
+                                </div>
+                            </div>
+                            <div
+                                class="bg-surface-light dark:bg-surface-dark p-5 rounded-lg border border-red-300 dark:border-red-700 shadow-sm flex items-center gap-4">
+                                <div
+                                    class="size-12 flex items-center justify-center rounded-full bg-red-100 text-red-600 dark:text-red-400">
+                                    <span class="material-symbols-outlined text-2xl">gpp_bad</span>
+                                </div>
+                                <div>
+                                    <p class="text-sm text-red-600 dark:text-red-400 font-medium">Số lượng hỏng</p>
+                                    <p id="stat-total-damage" class="text-2xl font-bold text-red-700 dark:text-red-300">
+                                        ...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col lg:flex-row gap-4 items-end lg:items-center justify-between">
+                            <div class="flex flex-1 w-full gap-4 flex-wrap">
+                                <div class="relative flex-1 min-w-[300px] max-w-[480px]">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="material-symbols-outlined text-gray-400">search</span>
+                                    </div>
+                                    <input id="searchInput" oninput="handleSearch(this)"
+                                        class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm shadow-sm"
+                                        placeholder="Tìm kiếm theo tên tài sản, mã..." type="text" autocomplete="off" />
+                                    <!-- Suggestions Container -->
+                                    <div id="searchSuggestions"
+                                        class="hidden absolute top-full left-0 w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-60 overflow-y-auto z-50">
+                                    </div>
+
+                                </div>
+                                <!-- Category Filter Only -->
+                                <div class="relative">
+                                    <select id="categoryFilter"
+                                        onchange="filterLocalTable(document.getElementById('searchInput').value)"
+                                        class="appearance-none h-10 pl-4 pr-10 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-medium focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer shadow-sm">
+                                        <option value="ALL">Tất cả danh mục</option>
+                                        <option value="TSCD">Tài sản cố định (TSCD)</option>
+                                        <option value="CCDC">Công cụ dụng cụ (CCDC)</option>
+                                    </select>
+                                    <div
+                                        class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                        <span class="material-symbols-outlined text-[20px]">expand_more</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span>Hiển thị 10 / 156 kết quả</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto px-6 py-6">
+                <div class="max-w-[1400px] mx-auto h-full flex flex-col">
+                    <div
+                        class="bg-white dark:bg-surface-dark rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex-1 flex flex-col overflow-hidden">
+                        <div class="overflow-x-auto flex-1">
+                            <table class="w-full text-left border-collapse">
+                                <thead class="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
+                                    <tr>
+
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Mã tài sản
+                                        </th>
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Tên tài sản
+                                        </th>
+                                        <!-- Column 3: Loại tài sản -->
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Loại tài sản
+                                        </th>
+                                        <!-- Column 4: Số lượng trong kho -->
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Số lượng trong kho
+                                        </th>
+                                        <!-- Column 5: Đơn vị tính -->
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Đơn vị tính
+                                        </th>
+                                        <!-- Column 6: Đơn vị sử dụng -->
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Đơn vị sử dụng
+                                        </th>
+                                        <!-- Column 7: Lần sửa cuối -->
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Lần sửa cuối
+                                        </th>
+                                        <!-- Column 8: Lịch sử -->
+                                        <th
+                                            class="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                                            Lịch sử
+                                        </th>
+
+                                        <th class="p-4 w-16 border-b border-gray-200 dark:border-gray-700"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="assetTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                    <!-- Rows will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div
+                            class="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-3 flex items-center justify-between sm:px-6">
+                            <!-- Pagination control (simplified for now) -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- History Modal -->
+    <div id="historyModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeHistoryModal()">
+        </div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-[#201619] rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+                <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Lịch sử giao dịch</h3>
+                        <p class="text-sm text-gray-500 mt-1" id="historyAssetName">Tài sản: ...</p>
+                    </div>
+                    <button onclick="closeHistoryModal()"
+                        class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <div
+                    class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex justify-end">
+                    <select id="historyFilter" onchange="filterHistory()"
+                        class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm px-3 py-2">
+                        <option value="ALL">Tất cả giao dịch</option>
+                        <option value="IMPORT">Nhập kho (IMPORT)</option>
+                        <option value="HANDOVER">Bàn giao (HANDOVER)</option>
+                        <option value="DAMAGE">Báo hỏng (DAMAGE)</option>
+                        <option value="DISPOSAL">Thanh lý (DISPOSAL)</option>
+                    </select>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6">
+                    <table class="w-full text-left border-collapse">
+                        <thead
+                            class="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0">
+                            <tr>
+                                <th class="p-3 text-xs font-medium text-gray-500 uppercase">Ngày</th>
+                                <th class="p-3 text-xs font-medium text-gray-500 uppercase">Loại</th>
+                                <th class="p-3 text-xs font-medium text-gray-500 uppercase text-right">SL</th>
+                                <!-- Removed Unit Price Column -->
+                                <th class="p-3 text-xs font-medium text-gray-500 uppercase">Lý do</th>
+                                <th class="p-3 text-xs font-medium text-gray-500 uppercase">Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                            <!-- JS Generated -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <button onclick="closeHistoryModal()"
+                        class="px-5 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Usage Details Modal -->
+    <div id="usageModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity" onclick="closeUsageModal()"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg flex flex-col transform transition-all scale-100">
+                <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Chi Tiết Sử Dụng</h3>
+                    <button onclick="closeUsageModal()"
+                        class="text-gray-500 hover:text-gray-900 dark:hover:text-white p-1 rounded-full hover:bg-gray-100">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+                <div class="p-6">
+                    <p class="text-sm text-gray-500 mb-4" id="usageAssetName">Đang tải...</p>
+                    <div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="p-3 font-medium text-gray-500">STT</th>
+                                    <th class="p-3 font-medium text-gray-900 dark:text-white">Đơn Vị Sử Dụng</th>
+                                    <th class="p-3 font-medium text-gray-900 dark:text-white text-right">Số Lượng</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usageTableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                                <!-- Generated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="p-5 border-t border-gray-200 dark:border-gray-700 flex justify-end">
+                    <button onclick="closeUsageModal()"
+                        class="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium text-sm">Đóng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Search Logic
+        let searchTimeout = null;
+
+        function handleSearch(input) {
+            const query = input.value.trim();
+            const suggestionsBox = document.getElementById('searchSuggestions');
+
+            // 1. Filter local table immediately
+            filterLocalTable(query);
+
+            // 2. Clear timeout
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            // 3. Hide suggestions if empty
+            if (query.length < 1) {
+                suggestionsBox.classList.add('hidden');
+                return;
+            }
+
+            // 4. Fetch suggestions from backend
+            searchTimeout = setTimeout(() => {
+                if (window.javaBridge && window.javaBridge.searchAssets) {
+                    try {
+                        const json = window.javaBridge.searchAssets(query);
+                        const results = JSON.parse(json);
+                        renderSuggestions(results);
+                    } catch (e) {
+                        console.error("Search error:", e);
+                    }
+                }
+            }, 300);
+        }
+
+        function renderSuggestions(results) {
+            const suggestionsBox = document.getElementById('searchSuggestions');
+            suggestionsBox.innerHTML = '';
+
+            if (results.length === 0) {
+                suggestionsBox.classList.add('hidden');
+                return;
+            }
+
+            results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "px-4 py-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-white border-b border-gray-100 dark:border-gray-700 last:border-0";
+
+                // Format: Code - Name - Manufacturer
+                const manufacturer = item.manufacturer ? ` - <span class="text-gray-500 font-normal">${item.manufacturer}</span>` : '';
+                div.innerHTML = `
+                    <div class="flex flex-col">
+                        <span class="font-medium">${item.name}</span>
+                        <span class="text-xs text-gray-500"><span class="font-mono text-primary">${item.id}</span>${manufacturer}</span>
+                    </div>
+                `;
+
+                div.onclick = () => {
+                    document.getElementById('searchInput').value = item.name;
+                    filterLocalTable(item.name);
+                    suggestionsBox.classList.add('hidden');
+                };
+                suggestionsBox.appendChild(div);
+            });
+
+            suggestionsBox.classList.remove('hidden');
+        }
+
+        // Close suggestions when clicking outside
+        document.addEventListener('click', function (e) {
+            const input = document.getElementById('searchInput');
+            const box = document.getElementById('searchSuggestions');
+            if (e.target !== input && e.target !== box && box && !box.contains(e.target)) {
+                box.classList.add('hidden');
+            }
+        });
+
+        function filterLocalTable(searchQueryInput) {
+            // Get inputs
+            const searchInput = document.getElementById('searchInput');
+            const categorySelect = document.getElementById('categoryFilter');
+
+            // If argument is provided, use it, else get from input
+            const searchQuery = (typeof searchQueryInput === 'string' ? searchQueryInput : searchInput.value).trim().toLowerCase();
+            const categoryValue = categorySelect ? categorySelect.value : "ALL";
+
+            const rows = document.querySelectorAll('#assetTableBody tr');
+
+            let visibleCount = 0;
+            rows.forEach(row => {
+                const id = row.cells[0].textContent.toLowerCase();
+                const name = row.cells[1].textContent.toLowerCase();
+                const type = row.cells[2].textContent.trim();
+
+                // 1. Check Search Match
+                const matchesSearch = id.includes(searchQuery) || name.includes(searchQuery);
+
+                // 2. Check Category Match
+                let matchesCategory = true;
+                if (categoryValue === "TSCD") {
+                    matchesCategory = (type === 'Thiết bị y tế' || type === 'Máy móc' || type === 'TSCD' || type === 'FIXED_ASSET');
+                } else if (categoryValue === "CCDC") {
+                    matchesCategory = (type === 'Vật tư tiêu hao' || type === 'Dược phẩm' || type === 'CCDC' || type === 'TOOL');
+                }
+
+                if (matchesSearch && matchesCategory) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const resultText = document.querySelector('.flex.items-center.gap-2.text-sm.text-gray-500 span');
+            if (resultText) {
+                resultText.textContent = `Hiển thị ${visibleCount} / ${rows.length} kết quả`;
+            }
+        }
+
+        // Existing loadAssets...
+
+        function loadAssets() {
+            if (window.javaBridge) {
+                try {
+                    const assetsJson = window.javaBridge.getAssets();
+                    // DEBUG: Check raw JSON
+                    // alert("Assets JSON: " + assetsJson.substring(0, 200) + "..."); 
+
+                    const assets = JSON.parse(assetsJson);
+                    renderTable(assets);
+                    loadStats();
+                } catch (e) {
+                    console.error("Error loading assets:", e);
+                }
+            } else {
+                console.log("Waiting for javaBridge...");
+                setTimeout(loadAssets, 500);
+            }
+        }
+
+        function renderTable(assets) {
+            const tbody = document.getElementById('assetTableBody');
+            tbody.innerHTML = '';
+
+            assets.forEach(asset => {
+                const tr = document.createElement('tr');
+                tr.className = "group hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors";
+
+                let displayType = asset.asset_category;
+                if (displayType === 'TOOL') displayType = 'CCDC';
+                if (displayType === 'FIXED_ASSET') displayType = 'TSCD';
+
+                // Usage Column Logic
+                let usageHtml = '';
+                if (asset.isDistributed) {
+                    const safeName = asset.name.replace(/'/g, "\\'");
+                    usageHtml = `<a href="#" class="text-primary hover:text-primary-hover hover:underline font-medium" onclick="viewUsage(this, '${asset.id}', '${safeName}')">Xem</a>`;
+                } else {
+                    usageHtml = `<a href="#" class="text-gray-400 hover:text-gray-600 italic text-xs" onclick="alert('Tài sản này chưa được bàn giao cho đơn vị nào.')">Chưa bàn giao</a>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="p-4 text-sm font-medium text-primary">${asset.id}</td>
+                    <td class="p-4 text-sm text-gray-900 dark:text-white font-medium">${asset.name}</td>
+                    <td class="p-4 text-sm text-gray-600 dark:text-gray-300">${displayType}</td>
+                    <td class="p-4 text-sm text-gray-600 dark:text-gray-300">
+                        <span class="font-bold text-primary">${asset.current_stock}</span>
+                        <span class="text-xs text-gray-400"> / ${asset.total_quantity}</span>
+                    </td>
+                    <td class="p-4 text-sm text-gray-600 dark:text-gray-300">${asset.base_unit}</td>
+                    <td class="p-4 text-sm">
+                        ${usageHtml}
+                    </td> 
+                    <td class="p-4 text-sm text-gray-500 dark:text-gray-400 js-date-now">${new Date().toLocaleDateString('vi-VN')}</td> 
+                    <td class="p-4 text-sm">
+                        <a href="#" class="text-primary hover:text-primary-hover hover:underline flex items-center gap-1" onclick="viewHistory('${asset.id}', '${asset.name.replace(/'/g, "\\'")}')">
+                            Xem
+                        </a>
+                    </td> 
+                    <td class="p-4 text-right">
+                        <button class="text-gray-400 hover:text-primary transition-colors p-1 rounded-full hover:bg-primary/10">
+                            <span class="material-symbols-outlined text-[20px]">more_vert</span>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const resultText = document.querySelector('.flex.items-center.gap-2.text-sm.text-gray-500 span');
+            if (resultText) {
+                resultText.textContent = `Hiển thị ${assets.length} / ${assets.length} kết quả`;
+            }
+        }
+
+        // ... existing codes ...
+
+        // Usage Modal Logic
+        function viewUsage(element, id, name) {
+            const modal = document.getElementById('usageModal');
+            // If name is not passed (legacy or fallback), try to get from DOM
+            if (!name || name === 'undefined') {
+                name = "Unknown";
+                if (element) {
+                    const row = element.closest('tr');
+                    if (row) {
+                        // Name is in the 2nd column (index 1)
+                        name = row.cells[1].textContent;
+                    }
+                }
+            }
+
+            document.getElementById('usageAssetName').innerHTML = `Tài sản: <span class="font-bold text-gray-900 dark:text-white">${name}</span>`;
+            const tbody = document.getElementById('usageTableBody');
+            tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500">Đang tải dữ liệu...</td></tr>';
+
+            modal.classList.remove('hidden');
+
+            if (window.javaBridge && window.javaBridge.getAssetUsage) {
+                try {
+                    const json = window.javaBridge.getAssetUsage(id);
+                    const usage = JSON.parse(json);
+                    renderUsageTable(usage);
+                } catch (e) {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-red-500">Lỗi tải dữ liệu: ${e}</td></tr>`;
+                }
+            } else {
+                // Mock
+                setTimeout(() => {
+                    renderUsageTable([
+                        { department: "Khoa Nội", quantity: 5 },
+                        { department: "Khoa Ngoại", quantity: 2 }
+                    ]);
+                }, 500);
+            }
+        }
+
+        function renderUsageTable(data) {
+            const tbody = document.getElementById('usageTableBody');
+            tbody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-gray-500 italic">Chưa có dữ liệu bàn giao chi tiết.</td></tr>';
+                return;
+            }
+
+            data.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-3 text-gray-500">${index + 1}</td>
+                    <td class="p-3 text-gray-900 dark:text-white font-medium">${item.department}</td>
+                    <td class="p-3 text-gray-900 dark:text-white text-right font-mono">${item.quantity}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function closeUsageModal() {
+            document.getElementById('usageModal').classList.add('hidden');
+        }
+
+        // ... existing codes ...
+
+
+        function loadStats() {
+            if (window.javaBridge && window.javaBridge.getDashboardStats) {
+                try {
+                    const statsJson = window.javaBridge.getDashboardStats();
+                    const stats = JSON.parse(statsJson);
+
+                    // Update Total Stock (Card 1)
+                    setTextIfExists('stat-total-stock', stats.totalStock);
+
+                    // Card 2: Handover
+                    setTextIfExists('stat-total-handover', stats.totalHandover);
+
+                    // Card 3: Damage
+                    setTextIfExists('stat-total-damage', stats.totalDamage);
+
+                } catch (e) {
+                    console.error("Error loading stats:", e);
+                }
+            }
+        }
+
+        function setTextIfExists(id, value) {
+            const el = document.getElementById(id);
+            if (el) el.textContent = value;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Fix: Update today's date
+            const today = new Date();
+            const formattedDate = today.toLocaleDateString('vi-VN'); // dd/mm/yyyy format for Vietnam
+
+            const dateCells = document.querySelectorAll('.js-date-now');
+            dateCells.forEach(cell => {
+                cell.textContent = formattedDate;
+            });
+
+            loadAssets();
+        });
+
+        // History Logic
+        let currentHistoryData = [];
+
+        function viewHistory(id, name) {
+            document.getElementById('historyAssetName').textContent = `Tài sản: ${name} (${id})`;
+            document.getElementById('historyModal').classList.remove('hidden');
+            document.getElementById('historyFilter').value = 'ALL';
+
+            if (window.javaBridge) {
+                try {
+                    const json = window.javaBridge.getHistory(id);
+                    currentHistoryData = JSON.parse(json);
+                    renderHistoryTable(currentHistoryData);
+                } catch (e) {
+                    console.error(e);
+                    alert("Lỗi tải lịch sử: " + e);
+                }
+            } else {
+                // Mock
+                currentHistoryData = [
+                    { date: "2024-01-01 10:00", type: "IMPORT", qty: 100, price: 50000, reason: "Nhập mới", note: "Test" },
+                    { date: "2024-01-02 14:00", type: "HANDOVER", qty: 10, price: 0, reason: "Cấp phát", note: "Cho khoa Nội" }
+                ];
+                renderHistoryTable(currentHistoryData);
+            }
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('historyModal').classList.add('hidden');
+        }
+
+        function filterHistory() {
+            const type = document.getElementById('historyFilter').value;
+            if (type === 'ALL') {
+                renderHistoryTable(currentHistoryData);
+            } else {
+                const filtered = currentHistoryData.filter(h => h.type === type);
+                renderHistoryTable(filtered);
+            }
+        }
+
+        function renderHistoryTable(data) {
+            const tbody = document.getElementById('historyTableBody');
+            tbody.innerHTML = '';
+
+            const typeMap = {
+                'IMPORT': 'Nhập kho',
+                'HANDOVER': 'Bàn giao',
+                'ISSUE': 'Xuất kho',
+                'DAMAGE': 'Báo hỏng',
+                'DISPOSAL': 'Thanh lý'
+            };
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-gray-500">Chưa có giao dịch nào.</td></tr>';
+                return;
+            }
+
+            data.forEach(h => {
+                let badgeClass = "bg-gray-100 text-gray-800";
+                if (h.type === 'IMPORT') badgeClass = "bg-green-100 text-green-800";
+                if (h.type === 'HANDOVER' || h.type === 'ISSUE') badgeClass = "bg-blue-100 text-blue-800";
+                if (h.type === 'DAMAGE') badgeClass = "bg-red-100 text-red-800";
+                if (h.type === 'DISPOSAL') badgeClass = "bg-orange-100 text-orange-800";
+
+                const displayType = typeMap[h.type] || h.type;
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 dark:hover:bg-gray-800";
+                tr.innerHTML = `
+                    <td class="p-3 text-sm">${h.date}</td>
+                    <td class="p-3 text-sm"><span class="px-2 py-1 rounded text-xs font-bold ${badgeClass}">${displayType}</span></td>
+                    <td class="p-3 text-sm text-right font-mono">${h.qty}</td>
+                    <!-- Removed unit price -->
+                    <td class="p-3 text-sm">${h.reason || '-'}</td>
+                    <td class="p-3 text-sm text-gray-500 italic">${h.note || ''}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+
+    <script src="icons.js"></script>
+</body>
+
+</html>

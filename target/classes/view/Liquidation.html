@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Cửa Sổ Thanh Lý</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c71551",
+                        "primary-hover": "#a51243",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#211116",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5dcdf;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 font-display h-screen flex flex-col overflow-hidden">
+    <!-- Header -->
+    <div
+        class="flex-none px-6 py-5 border-b border-[#e5dcdf] dark:border-[#4a3b40] flex items-center justify-between bg-white dark:bg-[#2a1d21] z-10">
+        <div>
+            <h1 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span class="material-symbols-outlined text-primary">sell</span>
+                Thanh Lý Tài Sản
+            </h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Kho: QTVT (Quản Trị Vật Tư)</p>
+        </div>
+    </div>
+
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+        <!-- Control Panel -->
+        <div class="bg-white dark:bg-[#2a1d21] p-5 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] shadow-sm">
+            <h2
+                class="text-sm font-semibold text-gray-900 dark:text-white mb-4 uppercase tracking-wide border-l-4 border-primary pl-3">
+                Thông Tin Chung</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Decision Code -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Mã Quyết Định <span
+                            class="text-primary">*</span></label>
+                    <input id="reasonInput"
+                        class="w-full rounded-md border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-sm py-2.5 px-3 focus:border-primary focus:ring-primary shadow-sm text-gray-700 dark:text-gray-200"
+                        type="text" placeholder="Nhập mã quyết định thanh lý..." />
+                </div>
+
+                <!-- Date -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Ngày Thanh Lý <span
+                            class="text-primary">*</span></label>
+                    <input id="liquidation-date"
+                        class="w-full rounded-md border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-sm py-2.5 px-3 focus:border-primary focus:ring-primary shadow-sm text-gray-700 dark:text-gray-200"
+                        type="date" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter & Search -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Danh Sách Tài Sản (Tại Kho QTVT)</h2>
+            <div class="relative max-w-xs w-full">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span class="material-symbols-outlined text-gray-400 text-[20px]">search</span>
+                </div>
+                <input id="searchAssetInput"
+                    class="block w-full rounded-md border-gray-300 dark:border-[#4a3b40] pl-10 sm:text-sm bg-white dark:bg-[#35262b] focus:ring-primary focus:border-primary placeholder-gray-400"
+                    placeholder="Tìm kiếm tài sản..." type="text" />
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div
+            class="border border-gray-200 dark:border-[#4a3b40] rounded-lg overflow-hidden bg-white dark:bg-[#2a1d21] shadow-sm flex flex-col h-[500px]">
+            <!-- Fixed height for scroll -->
+            <div class="overflow-auto custom-scrollbar flex-1">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-[#4a3b40]">
+                    <thead class="bg-gray-50 dark:bg-[#35262b] sticky top-0 z-10">
+                        <tr>
+                            <th class="px-4 py-3 text-left w-12"><input id="selectAll"
+                                    class="rounded border-gray-300 text-primary focus:ring-primary bg-white dark:bg-[#2a1d21]"
+                                    type="checkbox" /></th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Thông Tin TS</th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Danh Mục</th>
+                            <th
+                                class="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                Tồn</th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-32">
+                                SL Bán</th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-40">
+                                Đơn Giá</th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[150px]">
+                                Chi Tiết (TSCD)</th>
+                            <th
+                                class="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider min-w-[200px]">
+                                Ghi Chú</th>
+                        </tr>
+                    </thead>
+                    <tbody id="assetTableBody"
+                        class="bg-white dark:bg-[#2a1d21] divide-y divide-gray-200 dark:divide-[#4a3b40]">
+                        <!-- Rows -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination (Mock) -->
+            <div
+                class="px-4 py-3 bg-gray-50 dark:bg-[#35262b] border-t border-gray-200 dark:border-[#4a3b40] flex items-center justify-between sm:px-6">
+                <span class="text-sm text-gray-500">Hiển thị kết quả</span>
+                <div class="flex gap-2">
+                    <button class="text-gray-500 hover:text-gray-700 disabled:opacity-50"><span
+                            class="material-symbols-outlined">chevron_left</span></button>
+                    <button class="text-gray-500 hover:text-gray-700 disabled:opacity-50"><span
+                            class="material-symbols-outlined">chevron_right</span></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div
+        class="flex-none px-6 py-4 bg-gray-50 dark:bg-[#251a1e] border-t border-[#e5dcdf] dark:border-[#4a3b40] flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-500 dark:text-gray-400">Tổng Mục Chọn:</span>
+            <span id="totalSelectedBadge"
+                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-primary dark:bg-primary/20 dark:text-red-200">0</span>
+        </div>
+        <div class="flex gap-3">
+            <button
+                class="px-4 py-2 border border-gray-300 dark:border-[#4a3b40] rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2a1d21] hover:bg-gray-50 dark:hover:bg-[#35262b]">Hủy
+                Bỏ</button>
+            <button onclick="submitLiquidation()"
+                class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-colors shadow-md">Xác
+                Nhận Thanh Lý</button>
+        </div>
+    </div>
+
+    <!-- Detail Modal (Picker) -->
+    <div id="detailModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center">
+        <div class="bg-white dark:bg-[#251a1e] rounded-xl shadow-xl w-[600px] max-h-[80vh] flex flex-col">
+            <div
+                class="p-6 border-b border-[#e5dcdf] dark:border-[#4a3b40] flex justify-between items-center bg-[#fcfcfc] dark:bg-[#2a1d21] rounded-t-xl">
+                <div>
+                    <h3 class="text-lg font-bold text-[#181113] dark:text-white">Chọn tài sản thanh lý</h3>
+                    <p class="text-xs text-gray-500">Vui lòng chọn các tài sản cụ thể cần thanh lý từ danh sách dưới
+                        đây.</p>
+                </div>
+                <button onclick="closeDetailModal()"
+                    class="text-[#88636f] hover:text-[#181113] dark:hover:text-white transition-colors">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div class="p-0 overflow-hidden flex-1 flex flex-col">
+                <div class="overflow-y-auto custom-scrollbar flex-1 p-4">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-[#4a3b40]">
+                        <thead class="bg-gray-50 dark:bg-[#35262b]">
+                            <tr>
+                                <th class="px-4 py-2 text-left w-10"></th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mã TS</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serial</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Trạng Thái
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalItemsContainer"
+                            class="bg-white dark:bg-[#2a1d21] divide-y divide-gray-200 dark:divide-[#4a3b40]">
+                            <!-- Items -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div
+                class="p-6 border-t border-[#e5dcdf] dark:border-[#4a3b40] flex justify-end gap-3 bg-[#fcfcfc] dark:bg-[#2a1d21] rounded-b-xl">
+                <button onclick="closeDetailModal()"
+                    class="px-4 py-2 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] text-[#181113] dark:text-white text-sm font-medium hover:bg-[#f4f0f2] dark:hover:bg-[#35262b] transition-colors">Hủy</button>
+                <button onclick="saveDetails()"
+                    class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors shadow-md">Lưu
+                    & Cập Nhật SL</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="icons.js"></script>
+    <script>
+        let currentDetailRow = null;
+        const WAREHOUSE_ID = 'qtvt'; // Default to QTVT
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const dateInput = document.getElementById('liquidation-date');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+            initData();
+            document.getElementById('searchAssetInput').addEventListener('input', filterAssets);
+        });
+
+        function initData() {
+            // Auto load assets from qtvt
+            loadAssetsForDepartment(WAREHOUSE_ID);
+        }
+
+        function loadAssetsForDepartment(deptId) {
+            try {
+                if (!window.javaBridge || !window.javaBridge.getLiquidationAssets) {
+                    console.warn("Backend not ready or javaBridge missing.");
+                    // Fallback mock data for testing UI if needed, or just return
+                    // return;
+                }
+
+                let assets = [];
+                try {
+                    assets = JSON.parse(window.javaBridge.getLiquidationAssets(deptId));
+                } catch (e) {
+                    console.error("Error fetching assets: ", e);
+                }
+
+                const tbody = document.getElementById('assetTableBody');
+                tbody.innerHTML = '';
+                if (assets.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-gray-500">Kho QTVT hiện không có tài sản nào.</td></tr>';
+                    document.getElementById('totalSelectedBadge').textContent = '0';
+                    return;
+                }
+
+                assets.forEach(asset => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-red-50/30 dark:hover:bg-[#35292d] transition-colors group";
+                    const isTSCD = (asset.category === 'TSCD' || asset.category === 'FIXED_ASSET');
+
+                    row.innerHTML = `
+                         <td class="px-4 py-3"><input type="checkbox" class="asset-check rounded border-gray-300 text-primary focus:ring-primary bg-white dark:bg-[#2a1d21]" onchange="updateTotal()" /></td>
+                         <td class="px-4 py-3">
+                             <div class="flex flex-col">
+                                 <span class="font-medium text-gray-900 dark:text-white">${asset.name}</span>
+                                 <span class="text-xs text-gray-500 font-mono">${asset.id}</span>
+                             </div>
+                         </td>
+                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${asset.category}</td>
+                         <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">${asset.quantity}</td>
+                         <td class="px-4 py-3">
+                             <input type="number" class="w-full h-8 rounded border border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] px-2 text-sm text-right focus:border-primary focus:ring-primary outline-none ${isTSCD ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}" 
+                                    min="0" max="${asset.quantity}" placeholder="0" data-field="qty" 
+                                    ${isTSCD ? 'readonly' : 'oninput="toggleCheck(this)"'} value="0" />
+                         </td>
+                         <td class="px-4 py-3">
+                             <div class="relative">
+                                 <span class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500 text-xs">$</span>
+                                 <input type="number" class="w-full h-8 rounded border border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] pl-5 pr-2 text-sm text-right focus:border-primary focus:ring-primary outline-none" 
+                                        placeholder="0.00" data-field="price" value="0" />
+                             </div>
+                         </td>
+                         <td class="px-4 py-3">
+                             ${isTSCD
+                            ? `<a href="#" class="text-primary hover:text-primary/80 text-sm font-medium detail-link" onclick="openDetailModal(this, '${asset.id}', '${asset.name}'); return false;">Chọn tài sản</a>`
+                            : `<span class="text-gray-400 text-sm">-</span>`
+                        }
+                             <input type="hidden" class="detail-data" value="" />
+                         </td>
+                         <td class="px-4 py-3">
+                             <input type="text" class="w-full h-8 rounded border border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] px-2 text-sm focus:border-primary focus:ring-primary outline-none" 
+                                    placeholder="Ghi chú..." data-field="note" />
+                         </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                updateTotal();
+            } catch (e) { console.error(e); }
+        }
+
+        function toggleCheck(input) {
+            const row = input.closest('tr');
+            const checkbox = row.querySelector('.asset-check');
+            const qty = parseInt(input.value) || 0;
+            checkbox.checked = (qty > 0);
+            updateTotal();
+        }
+
+        function updateTotal() {
+            const checks = document.querySelectorAll('.asset-check:checked');
+            document.getElementById('totalSelectedBadge').textContent = checks.length;
+        }
+
+        function filterAssets() {
+            const query = document.getElementById('searchAssetInput').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('#assetTableBody tr');
+            rows.forEach(row => {
+                if (row.cells.length === 1) return;
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(query) ? '' : 'none';
+            });
+        }
+
+        // --- Detail Modal Logic (Refined) ---
+        function openDetailModal(el, assetId, assetName) {
+            currentDetailRow = el.closest('tr');
+
+            document.getElementById('detailModal').classList.remove('hidden');
+            document.getElementById('detailModal').classList.add('flex');
+
+            const container = document.getElementById('modalItemsContainer');
+            container.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-sm text-gray-500">Đang tải...</td></tr>';
+
+            // Get existing selection
+            const existingJson = currentDetailRow.querySelector('.detail-data').value;
+            let selectedIds = [];
+            try { selectedIds = JSON.parse(existingJson) || []; } catch (e) { }
+
+            // Fetch Items from WAREHOUSE_ID
+            if (window.javaBridge && window.javaBridge.getLiquidationItems) {
+                try {
+                    const items = JSON.parse(window.javaBridge.getLiquidationItems(assetId, WAREHOUSE_ID));
+                    container.innerHTML = '';
+                    if (items.length === 0) {
+                        container.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-sm text-gray-500">Không có tài sản nào khả dụng.</td></tr>';
+                        return;
+                    }
+
+                    items.forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.className = "hover:bg-gray-50 dark:hover:bg-[#35262b]";
+                        const isChecked = selectedIds.includes(item.id);
+                        const isDamaged = (item.status === 'DAMAGED');
+                        const statusClass = isDamaged ? 'text-red-500' : 'text-green-600';
+
+                        tr.innerHTML = `
+                             <td class="px-4 py-2"><input type="checkbox" class="item-check rounded border-gray-300 text-primary focus:ring-primary" value="${item.id}" ${isChecked ? 'checked' : ''} /></td>
+                             <td class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 font-mono">${item.id}</td>
+                             <td class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">${item.serial || '-'}</td>
+                             <td class="px-4 py-2 text-xs font-medium ${statusClass}">${item.status}</td>
+                         `;
+                        container.appendChild(tr);
+                    });
+
+                } catch (e) { console.error(e); }
+            }
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+            document.getElementById('detailModal').classList.remove('flex');
+            currentDetailRow = null;
+        }
+
+        function saveDetails() {
+            if (!currentDetailRow) return;
+            const checks = document.querySelectorAll('.item-check:checked');
+            const selectedIds = Array.from(checks).map(c => c.value);
+
+            // Update Hidden Data
+            currentDetailRow.querySelector('.detail-data').value = JSON.stringify(selectedIds);
+
+            // Update Quantity and Checkbox
+            const qtyInput = currentDetailRow.querySelector('input[data-field="qty"]');
+            qtyInput.value = selectedIds.length;
+
+            const rowCheckbox = currentDetailRow.querySelector('.asset-check');
+            rowCheckbox.checked = (selectedIds.length > 0);
+
+            // Update Link Text
+            const link = currentDetailRow.querySelector('.detail-link');
+            if (selectedIds.length > 0) {
+                link.textContent = `Đã chọn (${selectedIds.length})`;
+                link.classList.add('text-green-600');
+                link.classList.remove('text-primary');
+            } else {
+                link.textContent = 'Chọn tài sản';
+                link.classList.add('text-primary');
+                link.classList.remove('text-green-600');
+            }
+
+            updateTotal();
+            closeDetailModal();
+        }
+
+        function submitLiquidation() {
+            const reasonCode = document.getElementById('reasonInput').value;
+            if (!reasonCode.trim()) { alert("Vui lòng nhập Mã Quyết Định."); return; }
+
+            const rows = document.querySelectorAll('#assetTableBody tr');
+            const items = [];
+            let hasError = false;
+
+            rows.forEach(row => {
+                const check = row.querySelector('.asset-check');
+                if (!check || !check.checked) return;
+
+                const id = row.querySelector('.font-mono').textContent;
+                const qtyInput = row.querySelector('input[data-field="qty"]');
+                const priceInput = row.querySelector('input[data-field="price"]');
+                const noteInput = row.querySelector('input[data-field="note"]');
+                const isTSCD = row.querySelector('.detail-link') !== null;
+
+                const qty = parseInt(qtyInput.value) || 0;
+                const price = parseFloat(priceInput.value) || 0;
+                const note = noteInput.value;
+
+                if (qty <= 0) return;
+
+                if (isTSCD) {
+                    const detailData = row.querySelector('.detail-data').value;
+                    let details = [];
+                    try { details = JSON.parse(detailData) || []; } catch (e) { }
+
+                    if (details.length === 0) {
+                        alert(`Tài sản ${id} chưa chọn tài sản chi tiết.`);
+                        hasError = true;
+                        return;
+                    }
+                    items.push({ id, qty, price, note, details, reason: reasonCode });
+                } else {
+                    items.push({ id, qty, price, note, reason: reasonCode });
+                }
+            });
+
+            if (hasError) return;
+            if (items.length === 0) { alert("Vui lòng chọn ít nhất 1 tài sản."); return; }
+
+            const payload = { departmentId: WAREHOUSE_ID, items: items };
+            if (window.javaBridge && window.javaBridge.submitLiquidation) {
+                try {
+                    window.javaBridge.submitLiquidation(JSON.stringify(payload));
+                    alert("Thanh lý thành công!");
+                    // Reload assets
+                    loadAssetsForDepartment(WAREHOUSE_ID);
+                } catch (e) {
+                    alert("Lỗi: " + e.message);
+                }
+            } else { alert("Không thể kết nối Backend."); }
+        }
+    </script>
+</body>
+
+</html>

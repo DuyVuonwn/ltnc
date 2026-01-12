@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html class="light" lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Bàn Giao Tài Sản - Medical Inventory</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c71551",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#211116",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #e5dcdf;
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark font-display h-screen flex flex-col overflow-hidden">
+    <!-- Header -->
+    <div
+        class="flex items-center justify-between px-8 py-6 border-b border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#2a1d21]">
+        <div class="flex flex-col gap-1">
+            <h1 class="text-[#181113] dark:text-white text-2xl font-bold leading-tight">Bàn Giao Tài Sản</h1>
+            <p class="text-[#88636f] dark:text-[#bcaaa5] text-sm font-normal">Tạo phiếu xuất kho và bàn giao tài sản cho
+                đơn vị sử dụng.</p>
+        </div>
+        <!-- Status Removed -->
+        <div></div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+        <div class="max-w-[1120px] mx-auto w-full flex flex-col gap-8">
+
+            <!-- Section 1: Thông tin chung -->
+            <div class="flex flex-col gap-4">
+                <h2 class="text-[#181113] dark:text-white text-lg font-semibold border-l-4 border-primary pl-3">
+                    Thông Tin Chung
+                </h2>
+                <div
+                    class="grid grid-cols-1 md:grid-cols-3 gap-6 bg-[#fcfcfc] dark:bg-[#251a1e] p-6 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40]">
+
+                    <label class="flex flex-col flex-1 group">
+                        <span
+                            class="text-[#181113] dark:text-white text-sm font-medium leading-normal pb-2 flex items-center gap-1">
+                            Mã Quyết Định <span class="text-primary">*</span>
+                        </span>
+                        <div class="relative">
+                            <input id="decisionNoInput" oninput="validateRows()"
+                                class="w-full rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white h-11 px-4 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow placeholder:text-[#88636f] text-sm required-field"
+                                placeholder="Nhập mã quyết định..." type="text" />
+                        </div>
+                    </label>
+
+                    <label class="flex flex-col flex-1 group">
+                        <span
+                            class="text-[#181113] dark:text-white text-sm font-medium leading-normal pb-2 flex items-center gap-1">
+                            Đơn Vị Sử Dụng <span class="text-primary">*</span>
+                        </span>
+                        <div class="relative">
+                            <select id="departmentSelect" onchange="validateRows()"
+                                class="w-full rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white h-11 pl-4 pr-10 focus:border-primary focus:ring-1 focus:ring-primary outline-none appearance-none transition-shadow cursor-pointer text-sm required-field">
+                                <option disabled selected value="">Đang tải danh sách...</option>
+                            </select>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-[#88636f]">
+                                <span class="material-symbols-outlined text-[20px]">expand_more</span>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="flex flex-col flex-1 group">
+                        <span
+                            class="text-[#181113] dark:text-white text-sm font-medium leading-normal pb-2 flex items-center gap-1">
+                            Ngày Bàn Giao <span class="text-primary">*</span>
+                        </span>
+                        <div class="relative">
+                            <input id="handover-date" onchange="validateRows()"
+                                class="w-full rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white h-11 px-4 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-shadow placeholder:text-[#88636f] text-sm required-field"
+                                type="date" />
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Section 2: Chi tiết tài sản -->
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-wrap items-end justify-between gap-4">
+                    <h2 class="text-[#181113] dark:text-white text-lg font-semibold border-l-4 border-primary pl-3">
+                        Chi Tiết Tài Sản
+                    </h2>
+                    <div class="flex gap-3 w-full sm:w-auto">
+                        <!-- Search Removed -->
+                        <button onclick="addRow()"
+                            class="flex items-center gap-2 px-4 h-10 rounded-lg bg-white dark:bg-[#35262b] border border-[#e5dcdf] dark:border-[#4a3b40] text-primary hover:bg-[#f8f6f6] hover:border-primary transition-all text-sm font-medium shadow-sm whitespace-nowrap">
+                            <span class="material-symbols-outlined text-lg">add</span>
+                            Thêm Dòng
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-hidden rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] shadow-sm">
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full text-left text-sm whitespace-nowrap" id="itemsTable">
+                            <thead
+                                class="bg-[#fcfcfc] dark:bg-[#251a1e] border-b border-[#e5dcdf] dark:border-[#4a3b40]">
+                                <tr>
+                                    <th class="p-4 w-14 text-center text-[#88636f]">#</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white">Tên Tài Sản</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-32">ĐVT</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-32 text-right">Đã bàn giao
+                                    </th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white w-40 text-right">SL Bàn
+                                        Giao</th>
+                                    <th class="p-4 font-semibold text-[#181113] dark:text-white text-center w-24">Chi
+                                        tiết</th>
+                                    <th class="p-4 w-14 text-center"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-[#e5dcdf] dark:divide-[#4a3b40] bg-white dark:bg-[#2a1d21]"
+                                id="tableBody">
+                                <!-- Rows will be added by JS -->
+                            </tbody>
+                            <tfoot>
+                                <tr
+                                    class="bg-[#fcfcfc] dark:bg-[#251a1e] font-semibold text-[#181113] dark:text-white border-t border-[#e5dcdf] dark:border-[#4a3b40]">
+                                    <td class="p-4 text-center" colspan="4">Tổng cộng</td>
+                                    <td class="p-4 text-right" id="totalQtyDisplay">0</td>
+                                    <td class="p-4" colspan="2"></td>
+                                </tr>
+                            </tfoot>
+
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div
+            class="flex items-center justify-between px-8 py-6 bg-[#fcfcfc] dark:bg-[#251a1e] border-t border-[#e5dcdf] dark:border-[#4a3b40]">
+
+            <div class="flex items-center gap-4">
+                <button
+                    class="px-6 py-2.5 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] text-[#181113] dark:text-white text-sm font-medium hover:bg-[#f4f0f2] dark:hover:bg-[#35262b] transition-colors focus:outline-none focus:ring-2 focus:ring-[#e5dcdf] shadow-sm">
+                    Hủy Bỏ
+                </button>
+                <button id="saveButton" onclick="saveHandover()" disabled
+                    class="px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-[#2a1d21] shadow-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    Xác Nhận
+                </button>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" onclick="closeDetailModal()">
+        </div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div
+                class="bg-white dark:bg-[#2a1d21] rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-[#e5dcdf] dark:border-[#4a3b40]">
+                <!-- Modal Header -->
+                <div
+                    class="px-6 py-4 border-b border-[#e5dcdf] dark:border-[#4a3b40] flex items-center justify-between bg-[#fcfcfc] dark:bg-[#251a1e]">
+                    <div>
+                        <h3 class="text-lg font-bold text-[#181113] dark:text-white">Chi tiết Serial / Năm sản xuất</h3>
+                        <p id="modalAssetName" class="text-sm text-[#88636f]">Tài sản: <span
+                                class="font-medium text-primary">...</span></p>
+                    </div>
+                    <button onclick="closeDetailModal()"
+                        class="p-2 text-[#88636f] hover:text-[#181113] dark:hover:text-white rounded-lg hover:bg-[#e5dcdf]/50 dark:hover:bg-[#35262b] transition-colors">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <!-- Modal Content -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-6">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-[#fcfcfc] dark:bg-[#251a1e] border-b border-[#e5dcdf] dark:border-[#4a3b40]">
+                            <tr>
+                                <th class="p-3 font-semibold text-[#181113] dark:text-white w-12 text-center">#</th>
+                                <th class="p-3 font-semibold text-[#181113] dark:text-white">Loại Tài Sản</th>
+                                <th class="p-3 font-semibold text-[#181113] dark:text-white w-48">Serial</th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailTableBody" class="divide-y divide-[#e5dcdf] dark:divide-[#4a3b40]">
+                            <!-- Generated Rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Modal Footer -->
+                <div
+                    class="px-6 py-4 border-t border-[#e5dcdf] dark:border-[#4a3b40] flex justify-end gap-3 bg-white dark:bg-[#2a1d21]">
+                    <button onclick="closeDetailModal()"
+                        class="px-4 py-2 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] text-sm font-medium hover:bg-[#f8f6f6] dark:hover:bg-[#35262b] transition-colors">
+                        Đóng
+                    </button>
+                    <button onclick="saveDetails()"
+                        class="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors shadow-sm">
+                        Lưu Thay Đổi
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="icons.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Load Departments
+            loadDepartments();
+
+            const dateInput = document.getElementById('handover-date');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                const mm = String(today.getMonth() + 1).padStart(2, '0');
+                const dd = String(today.getDate()).padStart(2, '0');
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+            // Add initial row
+            addRow();
+        });
+
+        function addRow() {
+            const tbody = document.getElementById('tableBody');
+            const rowCount = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.className = "hover:bg-[#fcfcfc] dark:hover:bg-[#35292d] transition-colors group";
+            tr.innerHTML = `
+                <td class="p-4 text-center text-[#88636f] text-xs pt-5">${rowCount}</td>
+                <td class="p-4">
+                    <div class="relative w-full">
+                        <input oninput="handleNameInput(this)"
+                            class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60 transition-colors required-field asset-name"
+                            placeholder="Nhập tên tài sản..." type="text" />
+                        <input type="hidden" class="asset-id" />
+                    </div>
+                </td>
+                <td class="p-4">
+                     <input disabled
+                        class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-[#f8f6f6] dark:bg-[#2a1d21] px-3 text-sm text-[#88636f] cursor-not-allowed asset-unit"
+                        type="text" />
+                </td>
+                <td class="p-4 text-right">
+                     <input disabled
+                        class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-[#f8f6f6] dark:bg-[#2a1d21] px-3 text-sm text-[#88636f] text-right cursor-not-allowed asset-stock"
+                        type="number" />
+                </td>
+                <td class="p-4 text-right">
+                     <input oninput="validateRows()"
+                        class="w-full h-10 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white text-right focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60 transition-colors asset-qty required-field"
+                        type="number" min="1" placeholder="0" />
+                </td>
+                <td class="p-4 text-center">
+                    <button onclick="openDetailModal(this)" class="detail-link hidden text-sm text-primary hover:text-primary/80 hover:underline font-medium flex items-center justify-center gap-1 transition-colors">
+                        Chỉnh sửa
+                    </button>
+                    <span class="no-detail text-xs text-[#88636f]/50 italic text-center block w-full">-</span>
+                    <input type="hidden" class="asset-type" />
+                </td>
+                <td class="p-4 text-center">
+                    <button onclick="deleteRow(this)"
+                        class="text-[#88636f] hover:text-[#c71551] rounded p-1 transition-colors opacity-0 group-hover:opacity-100">
+                        <span class="material-symbols-outlined text-[20px]">delete</span>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+            validateRows();
+        }
+
+        // Global store for row details: { rowIndex: [ {serial, year, note}, ... ] }
+        let rowDetails = {};
+        let currentRowIndex = -1;
+
+        function deleteRow(btn) {
+            const row = btn.closest('tr');
+            const index = Array.from(row.parentNode.children).indexOf(row);
+
+            // Shift logic for rowDetails would be complex (indices change).
+            // Simplification: Handover usually has few rows. Re-indexing is messy.
+            // Better: We must shift keys.
+            // Or simpler: Just rebuild details map? No.
+            // Let's copy logic from ImportAssets.
+
+            const keys = Object.keys(rowDetails).map(Number).sort((a, b) => a - b);
+            delete rowDetails[index];
+
+            const newRowDetails = {};
+            keys.forEach(k => {
+                if (k > index) {
+                    newRowDetails[k - 1] = rowDetails[k];
+                } else if (k < index) {
+                    newRowDetails[k] = rowDetails[k];
+                }
+            });
+            rowDetails = newRowDetails;
+
+            row.remove();
+            updateRowNumbers();
+            validateRows();
+        }
+
+        function updateRowNumbers() {
+            const rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach((row, index) => {
+                row.cells[0].textContent = index + 1;
+            });
+        }
+
+        function toggleDetails(row, type) {
+            const detailLink = row.querySelector('.detail-link');
+            const noDetail = row.querySelector('.no-detail');
+            const typeInput = row.querySelector('.asset-type');
+
+            if (typeInput) typeInput.value = type;
+
+            if (type === 'TSCD' || type === 'FIXED_ASSET') {
+                detailLink.classList.remove('hidden');
+                noDetail.classList.add('hidden');
+            } else {
+                detailLink.classList.add('hidden');
+                noDetail.classList.remove('hidden');
+            }
+        }
+
+        function openDetailModal(btn) {
+            const row = btn.closest('tr');
+            const nameInput = row.querySelector('.asset-name');
+            const qtyInput = row.querySelector('.asset-qty');
+
+            const name = nameInput.value.trim() || "Tài sản chưa đặt tên";
+            const qty = parseInt(qtyInput.value) || 0;
+
+            if (qty <= 0) {
+                alert("Vui lòng nhập số lượng lớn hơn 0 trước khi nhập chi tiết.");
+                return;
+            }
+
+            const index = Array.from(row.parentNode.children).indexOf(row);
+            currentRowIndex = index;
+
+            document.getElementById('modalAssetName').querySelector('span').textContent = name;
+
+            const tbody = document.getElementById('detailTableBody');
+            tbody.innerHTML = '';
+
+            // Get existing or init new
+            const currentDetails = rowDetails[index] || [];
+
+            for (let i = 0; i < qty; i++) {
+                const detail = currentDetails[i] || { serial: '', note: '', manufactureYear: '' };
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-[#fcfcfc] dark:hover:bg-[#35292d] transition-colors border-b border-[#e5dcdf] dark:border-[#4a3b40]";
+                tr.innerHTML = `
+                    <td class="p-3 text-center text-[#88636f] text-xs">${i + 1}</td>
+                    <td class="p-3 text-sm text-[#181113] dark:text-white font-medium">${name}</td>
+                    <td class="p-3">
+                        <div class="relative">
+                            <input onblur="validateSerial(this, '${row.querySelector('.asset-id').value}')"
+                                type="text" class="detail-serial w-full h-9 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-transparent px-3 text-sm text-[#181113] dark:text-white focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-[#88636f]/60"
+                                placeholder="Nhập Serial trong kho..." value="${detail.serial}">
+                            <input type="hidden" class="detail-item-id" value="${detail.itemId || ''}">
+                            <p class="hidden text-xs text-red-500 mt-1 serial-error">Không tìm thấy serial</p>
+                            <p class="hidden text-xs text-green-500 mt-1 serial-success">Hợp lệ</p>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detailModal').classList.add('hidden');
+        }
+
+        function saveDetails() {
+            if (currentRowIndex === -1) return;
+
+            const tbody = document.getElementById('detailTableBody');
+            const rows = tbody.querySelectorAll('tr');
+            const details = [];
+            const serials = new Set();
+
+            for (const row of rows) {
+                const serialInput = row.querySelector('.detail-serial');
+                const serial = serialInput.value.trim();
+                const itemIdInput = row.querySelector('.detail-item-id');
+
+                if (!serial) {
+                    alert("Vui lòng nhập đầy đủ Serial cho tất cả các mục.");
+                    serialInput.focus();
+                    return;
+                }
+
+                if (!itemIdInput.value) {
+                    alert(`Serial '${serial}' không hợp lệ hoặc không có trong kho. Vui lòng kiểm tra lại.`);
+                    serialInput.focus();
+                    return;
+                }
+
+                // Note: we can enforce Serial uniqueness check here or against DB.
+                // Assuming simple check for now.
+                if (serials.has(serial)) {
+                    alert(`Serial '${serial}' bị trùng lặp trong danh sách này.`);
+                    serialInput.focus();
+                    return;
+                }
+                serials.add(serial);
+
+                details.push({
+                    serial: serial,
+                    itemId: itemIdInput.value
+                });
+            }
+
+            rowDetails[currentRowIndex] = details;
+            closeDetailModal();
+            validateRows();
+        }
+
+        // Autocomplete Logic
+        let searchTimeout = null;
+
+        function handleNameInput(input) {
+            // Debounce search
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            const query = input.value.trim();
+            const wrapper = input.parentElement;
+
+            // Remove existing dropdown if any
+            const existingDropdown = wrapper.querySelector('.suggestions-dropdown');
+            if (existingDropdown) existingDropdown.remove();
+
+            if (query.length < 1) return;
+
+            searchTimeout = setTimeout(() => {
+                if (window.javaBridge && window.javaBridge.searchAssets) {
+                    try {
+                        const json = window.javaBridge.searchAssets(query);
+                        const results = JSON.parse(json);
+                        if (results.length > 0) {
+                            showSuggestions(input, results);
+                        }
+                    } catch (e) {
+                        console.error("Search error:", e);
+                    }
+                }
+            }, 300);
+        }
+
+        function showSuggestions(input, results) {
+            const wrapper = input.parentElement;
+            const existing = wrapper.querySelector('.suggestions-dropdown');
+            if (existing) existing.remove();
+
+            const dropdown = document.createElement('div');
+            dropdown.className = "suggestions-dropdown absolute top-full left-0 min-w-[350px] bg-white dark:bg-[#35262b] border border-[#e5dcdf] dark:border-[#4a3b40] rounded-lg shadow-xl z-50 mt-1 max-h-60 overflow-y-auto";
+
+            results.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "px-3 py-2 hover:bg-[#f8f6f6] dark:hover:bg-[#2a1d21] cursor-pointer text-sm text-[#181113] dark:text-white flex flex-col";
+                // Show Name - Manufacturer
+                const vendorDisplay = item.manufacturer ? ` - ${item.manufacturer}` : '';
+                div.innerHTML = `<span class="font-medium">${item.name}<span class="text-[#88636f] text-xs font-normal">${vendorDisplay}</span></span>`;
+                div.onclick = () => selectSuggestion(input, item);
+
+                dropdown.appendChild(div);
+            });
+
+            wrapper.appendChild(dropdown);
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.suggestions-dropdown') && !e.target.closest('.asset-name')) {
+                document.querySelectorAll('.suggestions-dropdown').forEach(el => el.remove());
+            }
+        });
+
+        function validateRows() {
+            const isValidDecision = document.getElementById('decisionNoInput').value.trim() !== '';
+            const isValidDept = document.getElementById('departmentSelect').value !== '';
+            const isValidDate = document.getElementById('handover-date').value !== '';
+
+            // Validate headers
+            if (!isValidDecision) document.getElementById('decisionNoInput').classList.add('border-red-500');
+            else document.getElementById('decisionNoInput').classList.remove('border-red-500');
+
+            if (!isValidDept) document.getElementById('departmentSelect').classList.add('border-red-500');
+            else document.getElementById('departmentSelect').classList.remove('border-red-500');
+
+            if (!isValidDate) document.getElementById('handover-date').classList.add('border-red-500');
+            else document.getElementById('handover-date').classList.remove('border-red-500');
+
+            let allRowsValid = true;
+            const rows = document.querySelectorAll('#tableBody tr');
+            if (rows.length === 0) allRowsValid = false;
+
+            let totalQty = 0;
+
+            rows.forEach((row, index) => {
+                const nameInput = row.querySelector('.asset-name');
+                const qtyInput = row.querySelector('.asset-qty');
+                const stockInput = row.querySelector('.asset-stock');
+
+                const name = nameInput.value.trim();
+                const qty = parseInt(qtyInput.value) || 0;
+                const stock = parseInt(stockInput.value) || 0;
+
+                // Validate Name
+                let rowValid = true;
+                if (name === '') {
+                    nameInput.classList.add('border-red-500');
+                    rowValid = false;
+                } else {
+                    nameInput.classList.remove('border-red-500');
+                }
+
+                const type = row.querySelector('.asset-type').value;
+
+                if (qty <= 0) {
+                    qtyInput.classList.add('border-red-500');
+                    qtyInput.title = "Số lượng bàn giao phải lớn hơn 0";
+                    rowValid = false;
+                } else if (qty > stock) {
+                    // Check stock limit
+                    qtyInput.classList.add('border-red-500');
+                    qtyInput.title = `Số lượng bàn giao không được vượt quá số lượng đã bàn giao: (${stock})`;
+                    rowValid = false;
+                } else {
+                    // Check TSCD Details
+                    if (type === 'TSCD' || type === 'FIXED_ASSET') {
+                        const details = rowDetails[index];
+                        const link = row.querySelector('.detail-link');
+                        if (!details || details.length !== qty) {
+                            link.classList.add('text-red-500');
+                            link.classList.remove('text-primary');
+                            link.textContent = "Chưa nhập đủ!";
+                            rowValid = false; // Require details
+                        } else {
+                            link.classList.remove('text-red-500');
+                            link.classList.add('text-primary');
+                            link.textContent = "Chỉnh sửa";
+                        }
+                    }
+                    qtyInput.classList.remove('border-red-500');
+                    qtyInput.title = "";
+                }
+
+                if (!rowValid) allRowsValid = false;
+                totalQty += qty;
+            });
+
+            const overallValid = isValidDecision && isValidDept && isValidDate && allRowsValid;
+            const saveBtn = document.getElementById('saveButton');
+            if (saveBtn) {
+                saveBtn.disabled = !overallValid;
+            }
+
+            // Update footer total
+            const totalSpan = document.getElementById('totalQtyDisplay');
+            if (totalSpan) totalSpan.textContent = totalQty;
+
+        }
+
+        function saveHandover() {
+            const decisionNo = document.getElementById('decisionNoInput').value.trim();
+            const departmentId = document.getElementById('departmentSelect').value;
+            const handoverDate = document.getElementById('handover-date').value;
+
+            const items = [];
+            document.querySelectorAll('#tableBody tr').forEach((row, index) => {
+                items.push({
+                    id: row.querySelector('.asset-id').value,
+                    name: row.querySelector('.asset-name').value.trim(),
+                    unit: row.querySelector('.asset-unit').value,
+                    qty: parseInt(row.querySelector('.asset-qty').value) || 0,
+                    type: row.querySelector('.asset-type').value,
+                    details: rowDetails[index] || []
+                });
+            });
+
+            const payload = {
+                decisionNo: decisionNo,
+                departmentId: departmentId,
+                handoverDate: handoverDate,
+                items: items
+            };
+
+            if (window.javaBridge && window.javaBridge.saveHandover) {
+                const res = window.javaBridge.saveHandover(JSON.stringify(payload));
+                if (res === 'SUCCESS') {
+                    alert('Lưu phiếu bàn giao thành công!');
+                    // Reset or Close? Let's just alert for now as per "stub" plan.
+                    // Ideally check closeWindow support
+                    if (window.javaBridge.closeWindow) window.javaBridge.closeWindow();
+                } else {
+                    alert('Lỗi: ' + res);
+                }
+            } else {
+                console.log("Mock Save Handover:", payload);
+                alert("Đã lưu (Mock)!");
+            }
+        }
+
+        function selectSuggestion(input, item) {
+            const row = input.closest('tr');
+
+            // Fill Name
+            input.value = item.name;
+
+            // Fill ID
+            const idInput = row.querySelector('.asset-id');
+            if (idInput && item.id) {
+                idInput.value = item.id;
+            }
+
+            // Fill Unit
+            const unitInput = row.querySelector('.asset-unit');
+            if (unitInput) {
+                unitInput.value = item.unit || '';
+            }
+
+            // Fill Stock
+            const stockInput = row.querySelector('.asset-stock');
+            if (stockInput) {
+                stockInput.value = item.quantity || 0;
+            }
+
+            // Toggle Details Link based on Type
+            // Note: HandoverWindowController search returns 'type' now.
+            if (item.type) {
+                toggleDetails(row, item.type);
+            }
+
+            // Remove dropdown
+            document.querySelectorAll('.suggestions-dropdown').forEach(el => el.remove());
+            // Clear previous details if asset changed
+            const index = Array.from(row.parentNode.children).indexOf(row);
+            delete rowDetails[index];
+
+            validateRows();
+        }
+
+        function loadDepartments(retryCount = 0) {
+            const select = document.getElementById('departmentSelect');
+            if (!select) return;
+
+            if (window.javaBridge && window.javaBridge.getDepartments) {
+                try {
+                    const json = window.javaBridge.getDepartments();
+                    const departments = JSON.parse(json);
+
+                    select.innerHTML = '<option disabled selected value="">Chọn đơn vị nhận...</option>';
+
+                    departments.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept.id;
+                        option.textContent = dept.name;
+                        select.appendChild(option);
+                    });
+                } catch (e) {
+                    console.error("Error loading departments:", e);
+                    select.innerHTML = '<option disabled selected value="">Lỗi tải dữ liệu</option>';
+                }
+            } else {
+                if (retryCount < 20) {
+                    setTimeout(() => loadDepartments(retryCount + 1), 100);
+                    return;
+                }
+                console.log("Mocking departments");
+                // Mock logic for testing
+                select.innerHTML = '<option disabled selected value="">Chọn đơn vị nhận...</option>';
+                select.innerHTML += '<option value="dep-001">Khoa Nội (Mock)</option>';
+                select.innerHTML += '<option value="dep-002">Khoa Ngoại (Mock)</option>';
+            }
+        }
+
+        function validateSerial(input, assetId) {
+            const serial = input.value.trim();
+            const wrapper = input.parentElement;
+            const itemIdInput = wrapper.querySelector('.detail-item-id');
+            const errorMsg = wrapper.querySelector('.serial-error');
+            const successMsg = wrapper.querySelector('.serial-success');
+
+            if (!serial) {
+                input.classList.remove('border-green-500', 'border-red-500');
+                errorMsg.classList.add('hidden');
+                successMsg.classList.add('hidden');
+                itemIdInput.value = '';
+                return;
+            }
+
+            if (window.javaBridge && window.javaBridge.checkSerial) {
+                const itemId = window.javaBridge.checkSerial(assetId, serial);
+                if (itemId) {
+                    // Valid
+                    input.classList.remove('border-red-500');
+                    input.classList.add('border-green-500');
+                    errorMsg.classList.add('hidden');
+                    successMsg.classList.remove('hidden');
+                    itemIdInput.value = itemId;
+                } else {
+                    // Invalid
+                    input.classList.remove('border-green-500');
+                    input.classList.add('border-red-500');
+                    errorMsg.classList.remove('hidden');
+                    successMsg.classList.add('hidden');
+                    itemIdInput.value = '';
+                }
+            } else {
+                console.warn("checkSerial not available");
+                // Mock for testing without backend
+                if (serial.startsWith("S")) {
+                    input.classList.remove('border-red-500');
+                    input.classList.add('border-green-500');
+                    itemIdInput.value = "mock-item-id-" + serial;
+                } else {
+                    input.classList.remove('border-green-500');
+                    input.classList.add('border-red-500');
+                    itemIdInput.value = "";
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

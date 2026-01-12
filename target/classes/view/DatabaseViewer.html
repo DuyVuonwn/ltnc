@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html class="light" lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Database Viewer</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c61559",
+                        "primary-hover": "#a5114a",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #d1d5db;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #9ca3af;
+        }
+    </style>
+</head>
+
+<body class="bg-[#fcf8fa] dark:bg-[#211117] text-[#1b0e13] dark:text-gray-100 min-h-screen flex flex-col p-6">
+
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="size-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined">database</span>
+            </div>
+            <h1 class="text-2xl font-bold">Database Viewer</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <select id="tableSelect" onchange="loadTableData()"
+                class="h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-800 text-sm">
+                <option value="" disabled selected>Chọn bảng...</option>
+            </select>
+            <button onclick="loadTableData()"
+                class="h-10 w-10 flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <span class="material-symbols-outlined">refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <div
+        class="flex-1 bg-white dark:bg-[#2d1b22] rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col">
+        <div class="flex-1 overflow-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead id="tableHead" class="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
+                    <!-- Dynamic Headers -->
+                </thead>
+                <tbody id="tableBody" class="divide-y divide-gray-100 dark:divide-gray-700">
+                    <!-- Dynamic Rows -->
+                </tbody>
+            </table>
+            <div id="emptyState" class="hidden p-10 flex flex-col items-center justify-center text-gray-500">
+                <span class="material-symbols-outlined text-4xl mb-2">table_view</span>
+                <p>Chọn một bảng để xem dữ liệu</p>
+            </div>
+        </div>
+        <div
+            class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 flex justify-between">
+            <span id="rowCount">0 rows</span>
+            <span>Read-only View (Max 500 rows)</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            waitForApp();
+        });
+
+        function waitForApp() {
+            if (window.javaBridge && window.javaBridge.getTables) {
+                loadTables();
+            } else {
+                console.log("Waiting for backend...");
+                setTimeout(waitForApp, 200);
+            }
+        }
+
+        function loadTables() {
+            if (window.javaBridge && window.javaBridge.getTables) {
+                try {
+                    const json = window.javaBridge.getTables();
+
+                    const tables = JSON.parse(json);
+                    const select = document.getElementById('tableSelect');
+                    if (Array.isArray(tables)) {
+                        tables.forEach(t => {
+                            const opt = document.createElement('option');
+                            opt.value = t;
+                            opt.textContent = t;
+                            select.appendChild(opt);
+                        });
+                        // Auto load first table if available
+                        if (tables.length > 0) {
+                            select.value = "asset"; // Prefer asset table default
+                            if (select.selectedIndex === -1) select.selectedIndex = 1;
+                            loadTableData();
+                        }
+                    } else if (tables.Error) {
+                        alert(tables.Error);
+                    }
+                } catch (e) {
+                    console.error(e);
+                }
+            } else {
+                console.log("No backend connection");
+                // Mock
+                const select = document.getElementById('tableSelect');
+                ['asset', 'tool_transaction', 'fixed_asset_transaction'].forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t;
+                    opt.textContent = t;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        function loadTableData() {
+            const tableName = document.getElementById('tableSelect').value;
+            if (!tableName) return;
+
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+            const empty = document.getElementById('emptyState');
+            const rowCount = document.getElementById('rowCount');
+
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+            empty.classList.add('hidden');
+
+            if (window.javaBridge && window.javaBridge.getTableData) {
+                try {
+                    const json = window.javaBridge.getTableData(tableName);
+                    const result = JSON.parse(json);
+
+                    if (result.error) {
+                        alert("Error: " + result.error);
+                        return;
+                    }
+
+                    renderTable(result.columns, result.data);
+                    rowCount.textContent = `${result.data.length} rows`;
+
+                } catch (e) {
+                    console.error(e);
+                    alert("Failed to load data");
+                }
+            } else {
+                // Mock
+                renderTable(['id', 'name', 'qty'], [{ id: 1, name: 'Test', qty: 10 }]);
+            }
+        }
+
+        function renderTable(columns, data) {
+            const thead = document.getElementById('tableHead');
+            const tbody = document.getElementById('tableBody');
+
+            // Render Header
+            const trHead = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.className = "p-3 font-semibold text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 whitespace-nowrap";
+                th.textContent = col;
+                trHead.appendChild(th);
+            });
+            thead.appendChild(trHead);
+
+            // Render Body
+            if (data.length === 0) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td colspan="${columns.length}" class="p-6 text-center text-gray-500 italic">No data available</td>`;
+                tbody.appendChild(tr);
+                return;
+            }
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 dark:hover:bg-gray-800";
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.className = "p-3 border-b border-gray-100 dark:border-gray-800 whitespace-nowrap";
+                    const val = row[col];
+                    td.textContent = (val === null) ? 'NULL' : val;
+                    if (val === null) td.classList.add('text-gray-400', 'italic');
+                    tr.appendChild(td);
+                });
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+
+</html>

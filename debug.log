@@ -1,0 +1,119 @@
+[[1;34mINFO[m] Scanning for projects...
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m-------------------< [0;36mcom.example:javafx-webview-mvc[0;1m >-------------------[m
+[[1;34mINFO[m] [1mBuilding javafx-webview-mvc 1.0-SNAPSHOT[m
+[[1;34mINFO[m] [1m--------------------------------[ jar ]---------------------------------[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-clean-plugin:2.5:clean[m [1m(default-clean)[m @ [36mjavafx-webview-mvc[0;1m ---[m
+[[1;34mINFO[m] Deleting /home/duyvuong/School/ltnc/target
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m>>> [0;32mjavafx-maven-plugin:0.0.8:run[m [1m(default-cli)[0;1m > [0;1mprocess-classes[m @ [36mjavafx-webview-mvc[0;1m >>>[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-resources-plugin:2.6:resources[m [1m(default-resources)[m @ [36mjavafx-webview-mvc[0;1m ---[m
+[[1;33mWARNING[m] Using platform encoding (UTF-8 actually) to copy filtered resources, i.e. build is platform dependent!
+[[1;34mINFO[m] Copying 26 resources
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mmaven-compiler-plugin:3.11.0:compile[m [1m(default-compile)[m @ [36mjavafx-webview-mvc[0;1m ---[m
+[[1;34mINFO[m] Changes detected - recompiling the module! :source
+[[1;33mWARNING[m] File encoding has not been set, using platform encoding UTF-8, i.e. build is platform dependent!
+[[1;34mINFO[m] Compiling 1 source file with javac [debug target 21] to target/classes
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m<<< [0;32mjavafx-maven-plugin:0.0.8:run[m [1m(default-cli)[0;1m < [0;1mprocess-classes[m @ [36mjavafx-webview-mvc[0;1m <<<[m
+[[1;34mINFO[m] 
+[[1;34mINFO[m] 
+[[1;34mINFO[m] [1m--- [0;32mjavafx-maven-plugin:0.0.8:run[m [1m(default-cli)[m @ [36mjavafx-webview-mvc[0;1m ---[m
+Exception in Application start method
+java.lang.reflect.InvocationTargetException
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:118)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at javafx.graphics/com.sun.javafx.application.LauncherImpl.launchApplicationWithArgs(LauncherImpl.java:465)
+	at javafx.graphics/com.sun.javafx.application.LauncherImpl.launchApplication(LauncherImpl.java:364)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at java.base/sun.launcher.LauncherHelper$FXHelper.main(LauncherHelper.java:1156)
+Caused by: java.lang.RuntimeException: Exception in Application start method
+	at javafx.graphics/com.sun.javafx.application.LauncherImpl.launchApplication1(LauncherImpl.java:901)
+	at javafx.graphics/com.sun.javafx.application.LauncherImpl.lambda$launchApplication$2(LauncherImpl.java:196)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: java.lang.IllegalAccessError: class com.ltnc.Main (in unnamed module @0x73ae32b7) cannot access class com.sun.javafx.webkit.WebConsoleListener (in module javafx.web) because module javafx.web does not export com.sun.javafx.webkit to unnamed module @0x73ae32b7
+	at com.ltnc.Main.start(Main.java:21)
+	at javafx.graphics/com.sun.javafx.application.LauncherImpl.lambda$launchApplication1$9(LauncherImpl.java:847)
+	at javafx.graphics/com.sun.javafx.application.PlatformImpl.lambda$runAndWait$12(PlatformImpl.java:484)
+	at javafx.graphics/com.sun.javafx.application.PlatformImpl.lambda$runLater$10(PlatformImpl.java:457)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:400)
+	at javafx.graphics/com.sun.javafx.application.PlatformImpl.lambda$runLater$11(PlatformImpl.java:456)
+	at javafx.graphics/com.sun.glass.ui.InvokeLaterDispatcher$Future.run(InvokeLaterDispatcher.java:96)
+	at javafx.graphics/com.sun.glass.ui.gtk.GtkApplication._runLoop(Native Method)
+	at javafx.graphics/com.sun.glass.ui.gtk.GtkApplication.lambda$runLoop$11(GtkApplication.java:290)
+	... 1 more
+Exception running application com.ltnc.Main
+[[1;31mERROR[m] Command execution failed.
+[1;31morg.apache.commons.exec.ExecuteException[m: [1;31mProcess exited with an error: 1 (Exit value: 1)[m
+    [1mat[m org.apache.commons.exec.DefaultExecutor.executeInternal ([1mDefaultExecutor.java:404[m)
+    [1mat[m org.apache.commons.exec.DefaultExecutor.execute ([1mDefaultExecutor.java:166[m)
+    [1mat[m org.openjfx.JavaFXBaseMojo.executeCommandLine ([1mJavaFXBaseMojo.java:567[m)
+    [1mat[m org.openjfx.JavaFXBaseMojo.executeCommandLine ([1mJavaFXBaseMojo.java:434[m)
+    [1mat[m org.openjfx.JavaFXRunMojo.execute ([1mJavaFXRunMojo.java:105[m)
+    [1mat[m org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo ([1mDefaultBuildPluginManager.java:137[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2 ([1mMojoExecutor.java:370[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.doExecute ([1mMojoExecutor.java:351[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:215[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:171[m)
+    [1mat[m org.apache.maven.lifecycle.internal.MojoExecutor.execute ([1mMojoExecutor.java:163[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject ([1mLifecycleModuleBuilder.java:117[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject ([1mLifecycleModuleBuilder.java:81[m)
+    [1mat[m org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build ([1mSingleThreadedBuilder.java:56[m)
+    [1mat[m org.apache.maven.lifecycle.internal.LifecycleStarter.execute ([1mLifecycleStarter.java:128[m)
+    [1mat[m org.apache.maven.DefaultMaven.doExecute ([1mDefaultMaven.java:298[m)
+    [1mat[m org.apache.maven.DefaultMaven.doExecute ([1mDefaultMaven.java:192[m)
+    [1mat[m org.apache.maven.DefaultMaven.execute ([1mDefaultMaven.java:105[m)
+    [1mat[m org.apache.maven.cli.MavenCli.execute ([1mMavenCli.java:960[m)
+    [1mat[m org.apache.maven.cli.MavenCli.doMain ([1mMavenCli.java:293[m)
+    [1mat[m org.apache.maven.cli.MavenCli.main ([1mMavenCli.java:196[m)
+    [1mat[m jdk.internal.reflect.DirectMethodHandleAccessor.invoke ([1mDirectMethodHandleAccessor.java:103[m)
+    [1mat[m java.lang.reflect.Method.invoke ([1mMethod.java:580[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced ([1mLauncher.java:283[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.launch ([1mLauncher.java:226[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode ([1mLauncher.java:407[m)
+    [1mat[m org.codehaus.plexus.classworlds.launcher.Launcher.main ([1mLauncher.java:348[m)
+org.apache.commons.exec.ExecuteException: Process exited with an error: 1 (Exit value: 1)
+	at org.apache.commons.exec.DefaultExecutor.executeInternal(DefaultExecutor.java:404)
+	at org.apache.commons.exec.DefaultExecutor.execute(DefaultExecutor.java:166)
+	at org.openjfx.JavaFXBaseMojo.executeCommandLine(JavaFXBaseMojo.java:567)
+	at org.openjfx.JavaFXBaseMojo.executeCommandLine(JavaFXBaseMojo.java:434)
+	at org.openjfx.JavaFXRunMojo.execute(JavaFXRunMojo.java:105)
+	at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo(DefaultBuildPluginManager.java:137)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2(MojoExecutor.java:370)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute(MojoExecutor.java:351)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:215)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:171)
+	at org.apache.maven.lifecycle.internal.MojoExecutor.execute(MojoExecutor.java:163)
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:117)
+	at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject(LifecycleModuleBuilder.java:81)
+	at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build(SingleThreadedBuilder.java:56)
+	at org.apache.maven.lifecycle.internal.LifecycleStarter.execute(LifecycleStarter.java:128)
+	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:298)
+	at org.apache.maven.DefaultMaven.doExecute(DefaultMaven.java:192)
+	at org.apache.maven.DefaultMaven.execute(DefaultMaven.java:105)
+	at org.apache.maven.cli.MavenCli.execute(MavenCli.java:960)
+	at org.apache.maven.cli.MavenCli.doMain(MavenCli.java:293)
+	at org.apache.maven.cli.MavenCli.main(MavenCli.java:196)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced(Launcher.java:283)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.launch(Launcher.java:226)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode(Launcher.java:407)
+	at org.codehaus.plexus.classworlds.launcher.Launcher.main(Launcher.java:348)
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] [1;31mBUILD FAILURE[m
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;34mINFO[m] Total time:  4.937 s
+[[1;34mINFO[m] Finished at: 2025-12-27T21:50:00+07:00
+[[1;34mINFO[m] [1m------------------------------------------------------------------------[m
+[[1;31mERROR[m] Failed to execute goal [32morg.openjfx:javafx-maven-plugin:0.0.8:run[m [1m(default-cli)[m on project [36mjavafx-webview-mvc[m: [1;31mError[m: Command execution failed. Process exited with an error: 1 (Exit value: 1) -> [1m[Help 1][m
+[[1;31mERROR[m] 
+[[1;31mERROR[m] To see the full stack trace of the errors, re-run Maven with the [1m-e[m switch.
+[[1;31mERROR[m] Re-run Maven using the [1m-X[m switch to enable full debug logging.
+[[1;31mERROR[m] 
+[[1;31mERROR[m] For more information about the errors and possible solutions, please read the following articles:
+[[1;31mERROR[m] [1m[Help 1][m http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

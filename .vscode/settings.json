@@ -1,0 +1,4 @@
+{
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "idf.pythonInstallPath": "/usr/bin/python3"
+}
