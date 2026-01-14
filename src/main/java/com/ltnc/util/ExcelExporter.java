@@ -50,7 +50,8 @@ public class ExcelExporter {
 
             // Create header row
             Row headerRow = sheet.createRow(rowNum++);
-            String[] headers = {"STT", "Mã tài sản", "Tên tài sản", "Loại", "Đơn vị", "Số lượng theo sổ", "Số lượng thực tế", "Chênh lệch"};
+            String[] headers = { "STT", "Mã tài sản", "Tên tài sản", "Loại", "Đơn vị", "Số lượng theo sổ",
+                    "Số lượng thực tế", "Chênh lệch" };
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -66,13 +67,14 @@ public class ExcelExporter {
                 dataRow.createCell(0).setCellValue(rowIndex++);
                 dataRow.createCell(1).setCellValue(row.get("id") != null ? row.get("id").toString() : "");
                 dataRow.createCell(2).setCellValue(row.get("name") != null ? row.get("name").toString() : "");
-                dataRow.createCell(3).setCellValue(row.get("asset_category") != null ? row.get("asset_category").toString() : "");
+                dataRow.createCell(3)
+                        .setCellValue(row.get("asset_category") != null ? row.get("asset_category").toString() : "");
                 dataRow.createCell(4).setCellValue(row.get("base_unit") != null ? row.get("base_unit").toString() : "");
 
                 // Handle numbers
                 Object bookQty = row.get("book_quantity");
                 Object actualQty = row.get("actual_quantity");
-                
+
                 int bookQtyInt = 0;
                 int actualQtyInt = 0;
 
@@ -127,31 +129,38 @@ public class ExcelExporter {
     private static String showFileChooserDialog(Stage stage) {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Chọn vị trí lưu file kiểm kê");
-        fileChooser.setInitialDirectory(new File(System.getProperty("user.home") + "\\Downloads"));
-        
+        File userHome = new File(System.getProperty("user.home"));
+        File downloadsDir = new File(userHome, "Downloads");
+        if (downloadsDir.exists() && downloadsDir.isDirectory()) {
+            fileChooser.setInitialDirectory(downloadsDir);
+        } else {
+            fileChooser.setInitialDirectory(userHome);
+        }
+
         // Set default filename
         String defaultFileName = generateFileName();
         fileChooser.setInitialFileName(defaultFileName);
-        
+
         // Add Excel file filter
         FileChooser.ExtensionFilter excelFilter = new FileChooser.ExtensionFilter("Excel Files (*.xlsx)", "*.xlsx");
         fileChooser.getExtensionFilters().add(excelFilter);
 
         File selectedFile = fileChooser.showSaveDialog(stage);
-        
+
         if (selectedFile != null) {
             String filePath = selectedFile.getAbsolutePath();
-            
+
             // Ensure .xlsx extension
             if (!filePath.toLowerCase().endsWith(".xlsx")) {
                 filePath += ".xlsx";
             }
-            
+
             return filePath;
         }
-        
+
         return null;
-    }   
+    }
+
     private static CellStyle createHeaderStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();

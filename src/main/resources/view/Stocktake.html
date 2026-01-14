@@ -318,7 +318,17 @@
 
             displayAssets.forEach(asset => {
                 const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 transition-colors group";
+                const isDamagedRow = asset.id.endsWith("_DMG");
+                const realId = isDamagedRow ? asset.id.replace("_DMG", "") : asset.id;
+                const displayId = realId;
+
+                // Style Damaged Row
+                if (isDamagedRow) {
+                    tr.className = "bg-red-50 hover:bg-red-100 transition-colors group";
+                } else {
+                    tr.className = "hover:bg-slate-50 transition-colors group";
+                }
+
                 tr.setAttribute('data-id', asset.id);
 
                 let displayType = asset.asset_category;
@@ -344,7 +354,7 @@
                 // Input: Editable for both
                 // Note: We pass 'asset.id' to calculateDiff to save value
                 const inputHtml = `<input id="input-${asset.id}" oninput="calculateDiff(this, ${stock}, '${asset.id}')"
-                        class="block w-full text-right rounded border-gray-300 py-1.5 text-sm focus:border-primary focus:ring-primary font-medium shadow-sm transition-colors"
+                        class="block w-full text-right rounded border-gray-300 py-1.5 text-sm focus:border-primary focus:ring-primary font-medium shadow-sm transition-colors ${isDamagedRow ? 'bg-white' : ''}"
                         type="number" value="${actualVal}" placeholder="Nhập SL" />`;
 
                 // Details Link (Text style)
@@ -357,12 +367,12 @@
                     `<span class="text-gray-300 text-center block">-</span>`;
 
                 tr.innerHTML = `
-                    <td class="p-4 align-middle text-xs font-mono text-gray-500">${asset.id}</td>
+                    <td class="p-4 align-middle text-xs font-mono text-gray-500">${displayId}</td>
                     <td class="p-4 align-middle">
-                        <span class="font-medium text-gray-900 text-sm">${asset.name}</span>
+                        <span class="font-medium ${isDamagedRow ? 'text-red-700' : 'text-gray-900'} text-sm">${asset.name}</span>
                     </td>
                     <td class="p-4 align-middle">
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${isDamagedRow ? 'bg-red-100 text-red-800 border-red-200' : 'bg-gray-100 text-gray-600 border-gray-200'} border">
                             ${displayType}
                         </span>
                     </td>
@@ -426,11 +436,14 @@
 
             currentEditingAssetId = assetId;
             currentAssetName = assetName;
+
             document.getElementById('detailsModalTitle').textContent = assetName;
             document.getElementById('detailsTableBody').innerHTML = '<tr><td colspan="4" class="p-4 text-center">Đang tải...</td></tr>';
             document.getElementById('detailsModal').classList.remove('hidden');
 
             // Fetch Book Items for Lookup
+            // We pass the FULL assetId (possibly with _DMG) to the Controller.
+            // The Controller will parse it and decide whether to fetch IN_STOCK or DAMAGED items.
             if (!bookItemsCache[assetId]) {
                 if (window.javaBridge) {
                     try {

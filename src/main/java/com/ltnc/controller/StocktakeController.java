@@ -53,7 +53,15 @@ public class StocktakeController {
 
     public String getStocktakeDetails(String assetId) {
         com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
-        java.util.List<java.util.Map<String, Object>> items = dao.getStocktakeItems(assetId);
+
+        String realId = assetId;
+        String statusFilter = "NORMAL";
+        if (assetId.endsWith("_DMG")) {
+            realId = assetId.replace("_DMG", "");
+            statusFilter = "DAMAGED";
+        }
+
+        java.util.List<java.util.Map<String, Object>> items = dao.getStocktakeItems(realId, statusFilter);
         org.json.JSONArray json = new org.json.JSONArray();
         for (java.util.Map<String, Object> item : items) {
             org.json.JSONObject obj = new org.json.JSONObject();
@@ -82,37 +90,50 @@ public class StocktakeController {
             if (currentUser == null)
                 return "ERROR: User not logged in";
             String userId = currentUser.getId();
+            java.util.Set<String> processedAssetIds = new java.util.HashSet<>();
 
             for (int i = 0; i < data.length(); i++) {
                 org.json.JSONObject row = data.getJSONObject(i);
                 String id = row.getString("id");
+                boolean isDamagedRow = id.endsWith("_DMG");
+                String realId = isDamagedRow ? id.replace("_DMG", "") : id;
                 String type = row.getString("type");
+
+                processedAssetIds.add(realId);
 
                 if ("TOOL".equals(type) || "CCDC".equals(type)) {
                     int actual = row.getInt("actual");
                     int stock = row.optInt("stock", 0);
-                    dao.saveToolInventoryCheck(id, actual, stock, userId);
-                    // Update the actual quantity in the database
-                    dao.updateToolQuantityAfterStocktake(id, actual, userId);
+                    // Assume normal rows are IN_STOCK, damaged rows are DAMAGED
+                    String status = isDamagedRow ? "DAMAGED" : "IN_STOCK";
+
+                    dao.saveToolInventoryCheck(realId, actual, stock, userId);
+                    // Update the actual quantity in the database with status awareness
+                    dao.updateToolQuantityAfterStocktake(realId, actual, status, userId);
                 } else {
                     // Fixed Asset: Expect 'items' array
+                    // Check items status individually, no need to worry about row status
                     if (row.has("items")) {
                         org.json.JSONArray items = row.getJSONArray("items");
-                        int foundCount = 0;
+                        // int foundCount = 0;
                         for (int k = 0; k < items.length(); k++) {
                             org.json.JSONObject item = items.getJSONObject(k);
                             String itemId = item.getString("id");
+                            if (itemId == null || itemId.isEmpty() || "null".equals(itemId))
+                                continue; // skip dummy items
+
                             String status = item.getString("status"); // FOUND / MISSING / DAMAGED
                             dao.saveFixedAssetInventoryCheck(itemId, status, userId);
-                            if ("FOUND".equals(status)) {
-                                foundCount++;
-                            }
                         }
-                        // Update the actual quantity (count of found items)
-                        dao.updateFixedAssetQuantityAfterStocktake(id, foundCount);
                     }
                 }
             }
+
+            // Recalculate totals for all touched assets
+            for (String aid : processedAssetIds) {
+                dao.recalculateAssetTotal(aid);
+            }
+
             return "SUCCESS";
         } catch (Exception e) {
             e.printStackTrace();
@@ -127,27 +148,35 @@ public class StocktakeController {
             if (currentUser == null)
                 return "User not logged in";
             String userId = currentUser.getId();
+            java.util.Set<String> processedAssetIds = new java.util.HashSet<>();
 
             java.util.List<java.util.Map<String, Object>> exportData = new java.util.ArrayList<>();
 
             for (int i = 0; i < data.length(); i++) {
                 org.json.JSONObject row = data.getJSONObject(i);
-                String id = row.getString("id");
+                String id = row.getString("id"); // Can be _DMG
+                boolean isDamagedRow = id.endsWith("_DMG");
+                String realId = isDamagedRow ? id.replace("_DMG", "") : id;
+
                 String name = row.optString("name", "");
                 String assetCategory = row.optString("asset_category", "");
                 String baseUnit = row.optString("base_unit", "");
                 String type = row.getString("type");
 
+                processedAssetIds.add(realId);
+
                 if ("TOOL".equals(type) || "CCDC".equals(type)) {
                     int actual = row.getInt("actual");
                     int stock = row.optInt("stock", 0);
-                    dao.saveToolInventoryCheck(id, actual, stock, userId);
+                    String status = isDamagedRow ? "DAMAGED" : "IN_STOCK";
+
+                    dao.saveToolInventoryCheck(realId, actual, stock, userId);
                     // Update the actual quantity in the database
-                    dao.updateToolQuantityAfterStocktake(id, actual, userId);
+                    dao.updateToolQuantityAfterStocktake(realId, actual, status, userId);
 
                     // Add to export data
                     java.util.Map<String, Object> exportRow = new java.util.HashMap<>();
-                    exportRow.put("id", id);
+                    exportRow.put("id", realId + (isDamagedRow ? " (Hỏng)" : ""));
                     exportRow.put("name", name);
                     exportRow.put("asset_category", assetCategory);
                     exportRow.put("base_unit", baseUnit);
@@ -156,32 +185,38 @@ public class StocktakeController {
                     exportData.add(exportRow);
                 } else {
                     // Fixed Asset: Expect 'items' array
+                    int foundCount = 0;
                     if (row.has("items")) {
                         org.json.JSONArray items = row.getJSONArray("items");
-                        int foundCount = 0;
                         for (int k = 0; k < items.length(); k++) {
                             org.json.JSONObject item = items.getJSONObject(k);
                             String itemId = item.getString("id");
+                            if (itemId == null || itemId.isEmpty() || "null".equals(itemId))
+                                continue;
+
                             String status = item.getString("status"); // FOUND / MISSING / DAMAGED
                             dao.saveFixedAssetInventoryCheck(itemId, status, userId);
-                            if ("FOUND".equals(status)) {
+                            if ("FOUND".equals(status) || "DAMAGED".equals(status)) {
                                 foundCount++;
                             }
                         }
-                        // Update the actual quantity (count of found items)
-                        dao.updateFixedAssetQuantityAfterStocktake(id, foundCount);
 
                         // For fixed assets, add summary to export
                         java.util.Map<String, Object> exportRow = new java.util.HashMap<>();
-                        exportRow.put("id", id);
+                        exportRow.put("id", realId + (isDamagedRow ? " (Hỏng)" : ""));
                         exportRow.put("name", name);
                         exportRow.put("asset_category", assetCategory);
                         exportRow.put("base_unit", baseUnit);
-                        exportRow.put("book_quantity", items.length());
+                        exportRow.put("book_quantity", row.optInt("stock", 0)); // Based on row split
                         exportRow.put("actual_quantity", foundCount);
                         exportData.add(exportRow);
                     }
                 }
+            }
+
+            // Recalculate totals
+            for (String aid : processedAssetIds) {
+                dao.recalculateAssetTotal(aid);
             }
 
             // Export to Excel
