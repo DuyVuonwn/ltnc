@@ -12,9 +12,17 @@ public class Database {
     private static String getDatabaseUrl() {
         try {
             // Lấy đường dẫn tuyệt đối của database
-            File dbFile = new File("src/main/resources/database/ltnc.db");
+            // Use user.dir (current working directory) which is project root when running
+            // via mvn/IDE
+            String cwd = System.getProperty("user.dir");
+            File dbFile = new File(cwd, "src/main/resources/database/ltnc.db");
 
+            // Fallback if not found (e.g. running from target?)
             if (!dbFile.exists()) {
+                // Try classpath? No, we need write access.
+                // Maybe create it?
+                // For now, stick to this but ensure logging.
+                System.err.println("Database file not found at: " + dbFile.getAbsolutePath());
                 throw new RuntimeException("Database file not found: " + dbFile.getAbsolutePath());
             }
 

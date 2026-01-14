@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Đăng Nhập - MedInventory</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
+        rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#c71551",
+                        "primary-hover": "#a51243",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#211116",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark font-display h-screen flex items-center justify-center relative overflow-hidden">
+
+    <!-- Background Decoration Removed for Performance -->
+    <!-- <div class="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl"></div> -->
+    <!-- <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-primary/10 rounded-full blur-3xl"></div> -->
+
+    <div class="w-[90%] max-w-sm z-10 relative p-6">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary mb-4">
+                <span class="material-symbols-outlined text-3xl">medical_services</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white leading-tight">Hệ thống quản lý kho<br>Đại học Y
+                Hà Nội</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Đăng nhập để tiếp tục</p>
+        </div>
+
+        <form onsubmit="handleLogin(event)" class="space-y-6" novalidate>
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tên đăng
+                    nhập</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-gray-400 text-[20px]">person</span>
+                    </div>
+                    <input type="text" id="username"
+                        class="block w-full pl-10 rounded-md border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-gray-900 dark:text-white focus:ring-primary focus:border-primary sm:text-sm py-2.5"
+                        placeholder="Nhập tên đăng nhập" required>
+                </div>
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Mật
+                    khẩu</label>
+                <div class="mt-1 relative rounded-md shadow-sm">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span class="material-symbols-outlined text-gray-400 text-[20px]">lock</span>
+                    </div>
+                    <input type="password" id="password"
+                        class="block w-full pl-10 pr-10 rounded-md border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-gray-900 dark:text-white focus:ring-primary focus:border-primary sm:text-sm py-2.5"
+                        placeholder="Nhập mật khẩu" required>
+                    <button type="button" onclick="togglePassword()"
+                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer focus:outline-none">
+                        <span id="passwordIcon" class="material-symbols-outlined text-[20px]">visibility</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="text-sm">
+                    <a href="#" onclick="showSupportModal('Quên mật khẩu')"
+                        class="font-medium text-primary hover:text-primary-hover">Quên mật khẩu?</a>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit"
+                    class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+                    Đăng Nhập
+                </button>
+            </div>
+
+            <div class="text-center text-sm">
+                <a href="#" onclick="showSupportModal('Đăng ký tài khoản')"
+                    class="font-medium text-primary hover:text-primary-hover">Chưa có tài khoản?</a>
+            </div>
+
+            <p id="errorMessage" class="text-center text-sm text-primary font-medium mt-2 h-5 invisible"></p>
+        </form>
+    </div>
+
+    <!-- Support Modal -->
+    <div id="supportModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50">
+        <div
+            class="bg-white dark:bg-[#2a1d21] p-6 rounded-xl shadow-2xl max-w-xs w-[90%] transform transition-all scale-100">
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-900 dark:text-white mb-2">Hỗ trợ</h3>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                Vui lòng liên hệ phòng kỹ thuật để được hỗ trợ.
+            </p>
+            <div class="space-y-2 text-sm">
+                <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <span class="material-symbols-outlined text-primary text-base">call</span>
+                    <span class="font-medium">Hotline: 024.xxxx.xxxx</span>
+                </div>
+                <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <span class="material-symbols-outlined text-primary text-base">mail</span>
+                    <span class="font-medium">support@xxx.xxx.vn</span>
+                </div>
+            </div>
+            <div class="mt-6 text-right">
+                <button onclick="closeSupportModal()"
+                    class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                    Đóng
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSupportModal(title) {
+            document.getElementById('modalTitle').textContent = title;
+            const modal = document.getElementById('supportModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSupportModal() {
+            const modal = document.getElementById('supportModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Close on click outside
+        document.getElementById('supportModal').addEventListener('click', function (e) {
+            if (e.target === this) closeSupportModal();
+        });
+
+        function togglePassword() {
+            const passwordInput = document.getElementById('password');
+            const passwordIcon = document.getElementById('passwordIcon');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                // Use MaterialIconsHelper if available to get hex code, ensuring icon renders correctly
+                if (window.MaterialIconsHelper) {
+                    passwordIcon.innerHTML = window.MaterialIconsHelper.findIcon('visibility_off');
+                } else {
+                    passwordIcon.textContent = 'visibility_off';
+                }
+            } else {
+                passwordInput.type = 'password';
+                if (window.MaterialIconsHelper) {
+                    passwordIcon.innerHTML = window.MaterialIconsHelper.findIcon('visibility');
+                } else {
+                    passwordIcon.textContent = 'visibility';
+                }
+            }
+        }
+
+        function handleLogin(event) {
+
+            event.preventDefault();
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            const errorMsg = document.getElementById('errorMessage');
+
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username) {
+                errorMsg.textContent = "Vui lòng nhập tên đăng nhập.";
+                errorMsg.classList.remove('invisible');
+                usernameInput.focus();
+                return;
+            }
+
+            if (!password) {
+                errorMsg.textContent = "Vui lòng nhập mật khẩu.";
+                errorMsg.classList.remove('invisible');
+                passwordInput.focus();
+                return;
+            }
+
+            if (window.javaBridge && window.javaBridge.login) {
+                // Initial feedback
+                errorMsg.classList.add('invisible');
+
+                // Call Java
+                // Java method should return boolean or string? 
+                // Since this bridge call might be synchronous or async depending on implementation.
+                // Let's assume sync for simplicity or handle callback logic if needed.
+                // Actually, Java Navigation usually replaces the whole scene, so if successful, this page dies.
+                // If failed, we need feedback.
+
+                const result = window.javaBridge.login(username, password);
+                if (result !== true) { // If returns false (failed)
+                    errorMsg.textContent = "Tên đăng nhập hoặc mật khẩu không đúng.";
+                    errorMsg.classList.remove('invisible');
+                }
+            } else {
+                console.error("JavaBridge not found!");
+                errorMsg.textContent = "Lỗi kết nối hệ thống.";
+                errorMsg.classList.remove('invisible');
+            }
+        }
+    </script>
+    <script src="icons.js"></script>
+</body>
+
+</html>

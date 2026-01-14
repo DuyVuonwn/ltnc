@@ -31,26 +31,75 @@ public class ReportDamageController {
         return json.toString();
     }
 
-    public String getAssetsByDepartment(String deptId) {
-        if (deptId == null || deptId.isEmpty()) {
-            return "[]";
+    public String getAssetsByDepartmentPaged(String jsonArgs) {
+        // Expected JSON: { "deptId": "...", "page": 1, "limit": 10, "search": "" }
+        try {
+            org.json.JSONObject args = new org.json.JSONObject(jsonArgs);
+            String deptId = args.getString("deptId");
+            int page = args.optInt("page", 1);
+            int limit = args.optInt("limit", 10);
+            String search = args.optString("search", "");
+
+            if (page < 1)
+                page = 1;
+            int offset = (page - 1) * limit;
+
+            com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
+
+            // Get Data
+            java.util.List<com.ltnc.model.Asset> assets = dao.getAssetsByDepartmentPaged(deptId, limit, offset, search);
+            int totalCount = dao.countAssetsByDepartment(deptId, search);
+            int totalPages = (int) Math.ceil((double) totalCount / limit);
+
+            // Construct Response
+            org.json.JSONObject result = new org.json.JSONObject();
+            org.json.JSONArray assetsJson = new org.json.JSONArray();
+
+            for (com.ltnc.model.Asset a : assets) {
+                org.json.JSONObject obj = new org.json.JSONObject();
+                obj.put("id", a.getId());
+                obj.put("name", a.getName());
+                obj.put("quantity", a.getCurrent_stock());
+                obj.put("category", a.getAsset_category());
+                assetsJson.put(obj);
+            }
+
+            result.put("assets", assetsJson);
+            result.put("total", totalCount);
+            result.put("page", page);
+            result.put("totalPages", totalPages);
+
+            return result.toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new org.json.JSONObject().put("error", e.getMessage()).toString();
         }
-        com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
-        java.util.List<com.ltnc.model.Asset> assets = dao.getAssetsByDepartment(deptId);
-        org.json.JSONArray json = new org.json.JSONArray();
-        for (com.ltnc.model.Asset a : assets) {
-            org.json.JSONObject obj = new org.json.JSONObject();
-            obj.put("id", a.getId());
-            obj.put("name", a.getName());
-            obj.put("quantity", a.getCurrent_stock());
-            obj.put("category", a.getAsset_category());
-            json.put(obj);
-        }
-        return json.toString();
     }
 
-    public void submitDamageReport(String jsonString) {
+    // Kept for backward compatibility if needed, but logic delegated to new method
+    // or simple empty wrapper
+    public String getAssetsByDepartment(String deptId) {
+        // Redirect to page 1, distinct logic
+        return getAssetsByDepartmentPaged(new org.json.JSONObject()
+                .put("deptId", deptId)
+                .put("page", 1)
+                .put("limit", 1000) // All items simulation
+                .toString());
+    }
+
+    private com.ltnc.model.User currentUser;
+
+    public void setCurrentUser(com.ltnc.model.User user) {
+        this.currentUser = user;
+    }
+
+    public String submitDamageReport(String jsonString) {
         try {
+            if (currentUser == null)
+                return "ERROR: User not logged in";
+            String userId = currentUser.getId();
+
             org.json.JSONObject jsonData = new org.json.JSONObject(jsonString);
             String deptId = jsonData.getString("departmentId");
             org.json.JSONArray items = jsonData.getJSONArray("items");
@@ -65,14 +114,6 @@ public class ReportDamageController {
                 // Note is not currently sent, but can be added if needed
                 // String note = item.optString("note", "");
 
-                // Simplistic dispatch logic: We check the DAO or cache, but for now
-                // we assume usage of reportToolDamage if it succeeds, or check type if passed.
-                // Or better: pass type from frontend.
-                // Let's assume frontend passes 'type' or we fetch it.
-                // For this task, we focus on CCDC (TOOL). The user asked for CCDC logic.
-                // We'll treat all as tool damage for now or try to be safer.
-                // Ideally, get type from DB.
-
                 // Check for details (TSCD)
                 org.json.JSONArray detailsJson = item.optJSONArray("details");
 
@@ -82,17 +123,22 @@ public class ReportDamageController {
                     for (int k = 0; k < detailsJson.length(); k++) {
                         identifiers.add(detailsJson.getString(k));
                     }
-                    dao.reportFixedAssetDamage(id, deptId, identifiers, reason, "");
+                    dao.reportFixedAssetDamage(id, deptId, identifiers, reason, "", userId);
                 } else {
                     // It's a Tool (CCDC)
-                    dao.reportToolDamage(id, deptId, qty, reason, "");
+                    dao.reportToolDamage(id, deptId, qty, reason, "", userId);
                 }
             }
             log("Damage report submitted successfully for department: " + deptId);
-            closeWindow();
+            return "SUCCESS";
+        } catch (IllegalArgumentException e) {
+            return "Thông tin không hợp lệ: " + e.getMessage();
+        } catch (RuntimeException e) {
+            // Extract inner message if possible
+            return "Lỗi: " + e.getMessage();
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Error submitting damage report: " + e.getMessage());
+            return "Lỗi không xác định: " + e.getMessage();
         }
     }
 }

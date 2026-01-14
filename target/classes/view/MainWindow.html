@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Main Window - Quản lý Kho</title>
+    <title>QL Kho ĐH Y Hà Nội</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap"
         rel="stylesheet" />
     <link
@@ -20,10 +20,10 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#c61559", // Using the config's primary which is very close to user's request
-                        "primary-hover": "#a5114a",
-                        "background-light": "#fcf8fa",
-                        "background-dark": "#211117",
+                        "primary": "#c71551", // Sync with Login
+                        "primary-hover": "#a51243",
+                        "background-light": "#f8f6f6", // Sync with Login
+                        "background-dark": "#211116",
                         "surface-light": "#ffffff",
                         "surface-dark": "#2d1b22",
                     },
@@ -66,12 +66,14 @@
         class="sticky top-0 z-30 flex items-center justify-between whitespace-nowrap border-b border-solid border-b-[#f3e7ec] bg-white dark:bg-surface-dark px-6 py-4 shadow-sm">
         <div class="flex items-center gap-4 text-[#1b0e13] dark:text-white">
             <div class="size-8 text-primary flex items-center justify-center bg-primary/10 rounded-lg">
-                <span class="material-symbols-outlined text-2xl">local_hospital</span>
+                <span class="material-symbols-outlined text-2xl">medical_services</span>
+                <!-- Changed icon to match Login -->
             </div>
             <div>
-                <h1 class="text-xl font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white">MedStock
+                <h1 class="text-xl font-bold leading-tight tracking-[-0.015em] text-gray-900 dark:text-white">Đại học Y
+                    Hà Nội
                 </h1>
-                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Hệ thống Quản lý Kho Y Tế</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Hệ thống Quản lý Kho</p>
             </div>
         </div>
         <div class="flex items-center gap-6">
@@ -83,8 +85,8 @@
             <div class="h-6 w-px bg-gray-200 dark:bg-gray-700"></div>
             <div class="flex items-center gap-3">
                 <div class="flex flex-col items-end">
-                    <span class="text-sm font-bold text-gray-900 dark:text-white">Vương Đức Duy</span>
-                    <span class="text-xs text-gray-500 dark:text-gray-400">Phòng QT&VT</span>
+                    <span id="user-name" class="text-sm font-bold text-gray-900 dark:text-white">...</span>
+                    <span id="user-dept" class="text-xs text-gray-500 dark:text-gray-400">...</span>
                 </div>
                 <div class="relative group cursor-pointer">
                     <div class="bg-center bg-no-repeat bg-cover rounded-full size-10 border-2 border-primary/20"
@@ -92,11 +94,14 @@
                         style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCv8BqG0u-LzCI96jyrgi5Nzh2uyCCpDu363H-bP3FjBMHNWAAiyk5EnI08OS2dP263fpbK35qhWKoO2STmHWL3-UsteWS8QTLfmv72S-nsAPFpXyop0A5QsIaGRdiLgzMbk-olNao_3gRoOdPzOuh6P6B9AdCo6pyXLxRbbmLIH7cBmQNwx3wNcCuOU9W3kV8sXS9zWI0kOQNmipxyjZheyelbU3Q7O126JAVacSoP6JNL5bT-j5HJw8jYUO_yXLM9xmROAlXeKHPa");'>
                     </div>
                     <div
-                        class="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 hidden group-hover:block border border-gray-100 dark:border-gray-700">
+                        class="absolute right-0 top-full z-50 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 hidden group-hover:block border border-gray-100 dark:border-gray-700">
                         <a class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                             href="#">Hồ sơ</a>
-                        <a class="block px-4 py-2 text-sm text-primary font-medium hover:bg-gray-50 dark:hover:bg-gray-700"
-                            href="#">Đăng xuất</a>
+                        <button type="button"
+                            class="w-full text-left block px-4 py-2 text-sm text-primary font-medium hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer focus:outline-none"
+                            onclick="console.log('Logout clicked'); if(window.javaBridge) { window.javaBridge.logout(); } else { console.error('javaBridge not found'); }">
+                            Đăng xuất
+                        </button>
                     </div>
                 </div>
             </div>
@@ -683,7 +688,27 @@
             });
 
             loadAssets();
+            loadUserInfo();
         });
+
+        function loadUserInfo() {
+            if (window.javaBridge && window.javaBridge.getUserInfo) {
+                try {
+                    const json = window.javaBridge.getUserInfo();
+                    const user = JSON.parse(json);
+                    if (user.name) {
+                        document.getElementById('user-name').textContent = user.name;
+                    }
+                    if (user.department) {
+                        document.getElementById('user-dept').textContent = user.department;
+                    }
+                } catch (e) {
+                    console.error("Error loading user info:", e);
+                }
+            } else {
+                setTimeout(loadUserInfo, 500);
+            }
+        }
 
         // History Logic
         let currentHistoryData = [];

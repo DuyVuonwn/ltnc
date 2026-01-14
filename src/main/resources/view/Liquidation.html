@@ -165,7 +165,7 @@
                 class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-primary dark:bg-primary/20 dark:text-red-200">0</span>
         </div>
         <div class="flex gap-3">
-            <button
+            <button onclick="if(window.javaBridge && window.javaBridge.closeWindow) window.javaBridge.closeWindow();"
                 class="px-4 py-2 border border-gray-300 dark:border-[#4a3b40] rounded-lg shadow-sm text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-[#2a1d21] hover:bg-gray-50 dark:hover:bg-[#35262b]">Hủy
                 Bỏ</button>
             <button onclick="submitLiquidation()"
@@ -267,18 +267,33 @@
 
                 assets.forEach(asset => {
                     const row = document.createElement('tr');
-                    row.className = "hover:bg-red-50/30 dark:hover:bg-[#35292d] transition-colors group";
+                    const isDamaged = (asset.status === 'DAMAGED' || asset.status === 'BROKEN');
+                    const statusText = isDamaged ? ' (Hỏng)' : '';
+
+                    // Style: Damaged -> Red background, Normal -> Default
+                    if (isDamaged) {
+                        row.className = "bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/30 transition-colors group";
+                    } else {
+                        row.className = "hover:bg-gray-50 dark:hover:bg-[#35292d] transition-colors group";
+                    }
+
                     const isTSCD = (asset.category === 'TSCD' || asset.category === 'FIXED_ASSET');
 
+                    // If user wants to hide ID totally, we remove the <span>${asset.id}</span>
+                    // We also append statusText to name if damaged
                     row.innerHTML = `
                          <td class="px-4 py-3"><input type="checkbox" class="asset-check rounded border-gray-300 text-primary focus:ring-primary bg-white dark:bg-[#2a1d21]" onchange="updateTotal()" /></td>
                          <td class="px-4 py-3">
                              <div class="flex flex-col">
-                                 <span class="font-medium text-gray-900 dark:text-white">${asset.name}</span>
-                                 <span class="text-xs text-gray-500 font-mono">${asset.id}</span>
+                                 <span class="font-medium text-gray-900 dark:text-white ${isDamaged ? 'text-red-700 dark:text-red-400' : ''}">${asset.name}${statusText}</span>
+                                 <!-- Hidden ID as requested -->
+                                 <!-- <span class="text-xs text-gray-500 font-mono">${asset.id}</span> -->
+                                 <span class="text-xs font-mono hidden">${asset.id}</span>
                              </div>
                          </td>
-                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">${asset.category}</td>
+                         <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                            ${(asset.category === 'Tool' || asset.category === 'TOOL' || asset.category === 'CCDC') ? 'CCDC' : 'TSCD'}
+                         </td>
                          <td class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">${asset.quantity}</td>
                          <td class="px-4 py-3">
                              <input type="number" class="w-full h-8 rounded border border-gray-300 dark:border-[#4a3b40] bg-white dark:bg-[#35262b] px-2 text-sm text-right focus:border-primary focus:ring-primary outline-none ${isTSCD ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}" 
@@ -294,7 +309,7 @@
                          </td>
                          <td class="px-4 py-3">
                              ${isTSCD
-                            ? `<a href="#" class="text-primary hover:text-primary/80 text-sm font-medium detail-link" onclick="openDetailModal(this, '${asset.id}', '${asset.name}'); return false;">Chọn tài sản</a>`
+                            ? `<a href="#" class="text-primary hover:text-primary/80 text-sm font-medium detail-link" onclick="openDetailModal(this, '${asset.id}', '${asset.name}', '${asset.status}'); return false;">Chọn tài sản</a>`
                             : `<span class="text-gray-400 text-sm">-</span>`
                         }
                              <input type="hidden" class="detail-data" value="" />
@@ -334,7 +349,7 @@
         }
 
         // --- Detail Modal Logic (Refined) ---
-        function openDetailModal(el, assetId, assetName) {
+        function openDetailModal(el, assetId, assetName, status) {
             currentDetailRow = el.closest('tr');
 
             document.getElementById('detailModal').classList.remove('hidden');
@@ -351,7 +366,8 @@
             // Fetch Items from WAREHOUSE_ID
             if (window.javaBridge && window.javaBridge.getLiquidationItems) {
                 try {
-                    const items = JSON.parse(window.javaBridge.getLiquidationItems(assetId, WAREHOUSE_ID));
+                    // Pass Status to Backend
+                    const items = JSON.parse(window.javaBridge.getLiquidationItems(assetId, WAREHOUSE_ID, status));
                     container.innerHTML = '';
                     if (items.length === 0) {
                         container.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-sm text-gray-500">Không có tài sản nào khả dụng.</td></tr>';

@@ -107,7 +107,9 @@
         'vaccines': '&#xe138;',
         'move_up': '&#xeb64;',
         'radiology': '&#xe125;',
-        'link_off': '&#xe16f;'
+        'link_off': '&#xe16f;',
+        'call': '&#xe0b0;',
+        'mail': '&#xe0be;'
     };
 
     // Hàm chuyển đổi icon

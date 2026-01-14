@@ -6,9 +6,14 @@ public class StocktakeController {
     // WINDOW MANAGEMENT
     // =========================
     private javafx.stage.Stage stage;
+    private com.ltnc.model.User currentUser;
 
     public void setStage(javafx.stage.Stage stage) {
         this.stage = stage;
+    }
+
+    public void setCurrentUser(com.ltnc.model.User user) {
+        this.currentUser = user;
     }
 
     public void closeWindow() {
@@ -74,7 +79,9 @@ public class StocktakeController {
         try {
             org.json.JSONArray data = new org.json.JSONArray(jsonStr);
             com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
-            String userId = "nv001"; // Hardcoded
+            if (currentUser == null)
+                return "ERROR: User not logged in";
+            String userId = currentUser.getId();
 
             for (int i = 0; i < data.length(); i++) {
                 org.json.JSONObject row = data.getJSONObject(i);
@@ -86,7 +93,7 @@ public class StocktakeController {
                     int stock = row.optInt("stock", 0);
                     dao.saveToolInventoryCheck(id, actual, stock, userId);
                     // Update the actual quantity in the database
-                    dao.updateToolQuantityAfterStocktake(id, actual);
+                    dao.updateToolQuantityAfterStocktake(id, actual, userId);
                 } else {
                     // Fixed Asset: Expect 'items' array
                     if (row.has("items")) {
@@ -117,7 +124,9 @@ public class StocktakeController {
         try {
             org.json.JSONArray data = new org.json.JSONArray(jsonStr);
             com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
-            String userId = "nv001"; // Hardcoded
+            if (currentUser == null)
+                return "User not logged in";
+            String userId = currentUser.getId();
 
             java.util.List<java.util.Map<String, Object>> exportData = new java.util.ArrayList<>();
 
@@ -134,7 +143,7 @@ public class StocktakeController {
                     int stock = row.optInt("stock", 0);
                     dao.saveToolInventoryCheck(id, actual, stock, userId);
                     // Update the actual quantity in the database
-                    dao.updateToolQuantityAfterStocktake(id, actual);
+                    dao.updateToolQuantityAfterStocktake(id, actual, userId);
 
                     // Add to export data
                     java.util.Map<String, Object> exportRow = new java.util.HashMap<>();

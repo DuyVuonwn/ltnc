@@ -19,6 +19,12 @@ public class ImportAssetsController {
         System.out.println("[ImportAssets JS] " + message);
     }
 
+    private com.ltnc.model.User currentUser;
+
+    public void setCurrentUser(com.ltnc.model.User user) {
+        this.currentUser = user;
+    }
+
     // Attempt to close the window containing this webview
     public void closeWindow() {
         // Since we don't have direct stage reference injected easily,
@@ -42,6 +48,11 @@ public class ImportAssetsController {
     public String saveImportItems(String jsonString) {
         System.out.println("Received Import Data: " + jsonString);
         try {
+            if (currentUser == null) {
+                return "ERROR: Phiên làm việc hết hạn. Vui lòng đăng nhập lại.";
+            }
+            String userId = currentUser.getId();
+
             JSONObject root = new JSONObject(jsonString);
             JSONObject meta = root.getJSONObject("meta");
             JSONArray items = root.getJSONArray("items");
@@ -94,7 +105,7 @@ public class ImportAssetsController {
                                 if (itemId != null) {
                                     // Log Transaction (IMPORT) for this specific item
                                     assetDAO.logFixedAssetTransaction(asset.getId(), itemId, "IMPORT", price,
-                                            decisionNo, "Nhập mới");
+                                            decisionNo, "Nhập mới", userId);
                                 }
                             }
                         }
@@ -104,7 +115,7 @@ public class ImportAssetsController {
                     assetDAO.upsertTool(asset.getId(), null, qty);
 
                     // Log Transaction (IMPORT) for CCDC
-                    assetDAO.logTransaction(asset.getId(), "IMPORT", qty, price, "Nhập mới", decisionNo);
+                    assetDAO.logTransaction(asset.getId(), "IMPORT", qty, price, "Nhập mới", decisionNo, userId);
                 }
 
                 // Log Transaction (IMPORT) -> MOVED TO INDIVIDUAL BLOCKS

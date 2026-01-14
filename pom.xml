@@ -10,9 +10,9 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>25</maven.compiler.source>
-        <maven.compiler.target>25</maven.compiler.target>
-        <javafx.version>25</javafx.version>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <javafx.version>21</javafx.version>
     </properties>
 
     <dependencies>
@@ -84,8 +84,11 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.11.0</version>
                 <configuration>
-                    <source>25</source>
-                    <target>25</target>
+                    <source>21</source>
+                    <target>21</target>
+                    <compilerArgs>
+                        <arg>-Xlint:-module</arg>
+                    </compilerArgs>
                 </configuration>
             </plugin>
 
@@ -111,6 +114,9 @@
                 <version>0.0.8</version>
                 <configuration>
                     <mainClass>com.ltnc.Main</mainClass>
+                    <options>
+                        <option>-Dprism.order=sw</option>
+                    </options>
                 </configuration>
             </plugin>
         </plugins>

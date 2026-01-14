@@ -2,7 +2,7 @@ module com.ltnc {
     requires transitive javafx.controls;
     requires transitive javafx.web; // 🔥 THÊM DÒNG NÀY
     requires javafx.fxml;
-    requires java.sql;
+    requires transitive java.sql;
     requires org.xerial.sqlitejdbc;
     requires jdk.jsobject;
     requires org.json;
@@ -14,4 +14,5 @@ module com.ltnc {
 
     exports com.ltnc;
     exports com.ltnc.controller;
+    exports com.ltnc.model;
 }

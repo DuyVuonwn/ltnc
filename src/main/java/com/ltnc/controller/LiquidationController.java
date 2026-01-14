@@ -6,10 +6,22 @@ public class LiquidationController {
         System.out.println("[Liquidation JS] " + message);
     }
 
+    private com.ltnc.model.User currentUser;
+
+    public void setCurrentUser(com.ltnc.model.User user) {
+        this.currentUser = user;
+    }
+
     private javafx.stage.Stage stage;
 
     public void setStage(javafx.stage.Stage stage) {
         this.stage = stage;
+    }
+
+    public void closeWindow() {
+        if (stage != null) {
+            javafx.application.Platform.runLater(() -> stage.close());
+        }
     }
 
     public String getDepartments() {
@@ -48,22 +60,23 @@ public class LiquidationController {
             return "[]";
         }
         com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
-        java.util.List<com.ltnc.model.Asset> assets = dao.getLiquidationAssets(deptId);
+        java.util.List<java.util.Map<String, Object>> assets = dao.getLiquidationAssets(deptId);
         org.json.JSONArray json = new org.json.JSONArray();
-        for (com.ltnc.model.Asset a : assets) {
+        for (java.util.Map<String, Object> a : assets) {
             org.json.JSONObject obj = new org.json.JSONObject();
-            obj.put("id", a.getId());
-            obj.put("name", a.getName());
-            obj.put("quantity", a.getCurrent_stock());
-            obj.put("category", a.getAsset_category());
+            obj.put("id", a.get("id"));
+            obj.put("name", a.get("name"));
+            obj.put("quantity", a.get("quantity"));
+            obj.put("category", a.get("category"));
+            obj.put("status", a.get("status")); // New field
             json.put(obj);
         }
         return json.toString();
     }
 
-    public String getLiquidationItems(String assetId, String deptId) {
+    public String getLiquidationItems(String assetId, String deptId, String status) {
         com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
-        java.util.List<java.util.Map<String, Object>> items = dao.getLiquidationItems(assetId, deptId);
+        java.util.List<java.util.Map<String, Object>> items = dao.getLiquidationItems(assetId, deptId, status);
         org.json.JSONArray json = new org.json.JSONArray();
         for (java.util.Map<String, Object> item : items) {
             org.json.JSONObject obj = new org.json.JSONObject();
@@ -75,11 +88,15 @@ public class LiquidationController {
         return json.toString();
     }
 
-    public void submitLiquidation(String jsonString) {
+    public String submitLiquidation(String jsonString) {
         try {
+            if (currentUser == null) {
+                return "ERROR: User not logged in";
+            }
+            String userId = currentUser.getId();
+
             org.json.JSONObject jsonData = new org.json.JSONObject(jsonString);
             String deptId = jsonData.getString("departmentId");
-            // String date = jsonData.getString("date");
             org.json.JSONArray items = jsonData.getJSONArray("items");
 
             com.ltnc.model.AssetDAO dao = new com.ltnc.model.AssetDAO();
@@ -100,20 +117,21 @@ public class LiquidationController {
                     for (int k = 0; k < detailsJson.length(); k++) {
                         identifiers.add(detailsJson.getString(k));
                     }
-                    dao.reportFixedAssetLiquidation(id, deptId, identifiers, price, reason, note);
+                    dao.liquidateFixedAsset(id, identifiers, price, reason, note, userId);
                 } else {
                     // Tool
-                    dao.reportToolLiquidation(id, deptId, qty, price, reason, note);
+                    dao.liquidateTool(id, qty, price, reason, note, userId);
                 }
             }
             log("Liquidation submitted successfully.");
             if (stage != null) {
                 javafx.application.Platform.runLater(() -> stage.close());
             }
+            return "SUCCESS";
 
         } catch (Exception e) {
             e.printStackTrace();
-            throw new RuntimeException("Error submitting liquidation: " + e.getMessage());
+            return "ERROR: " + e.getMessage();
         }
     }
 }

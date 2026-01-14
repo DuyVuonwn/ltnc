@@ -16,9 +16,28 @@ public class MainWindowController {
     // OPEN HANDOVER WINDOW
     // =========================
     private WebEngine mainEngine;
+    private com.ltnc.model.User currentUser;
 
     public void setMainEngine(WebEngine engine) {
         this.mainEngine = engine;
+    }
+
+    public void setCurrentUser(com.ltnc.model.User user) {
+        this.currentUser = user;
+    }
+
+    public com.ltnc.model.User getCurrentUser() {
+        return currentUser;
+    }
+
+    // Method to be called from JS to get user info
+    public String getUserInfo() {
+        if (currentUser == null)
+            return "{}";
+        return new JSONObject()
+                .put("name", currentUser.getName())
+                .put("department", currentUser.getDepartmentName()) // Or fetch name
+                .toString();
     }
 
     // =========================
@@ -129,10 +148,18 @@ public class MainWindowController {
     // =========================
     public void importAssets() {
         openModalWindow("MedInventory - Import Assets", "/view/ImportAssets.html", new ImportAssetsController(), true);
+        if (mainEngine != null) {
+            mainEngine.executeScript(
+                    "if(window.loadStats) window.loadStats(); if(window.loadAssets) window.loadAssets();");
+        }
     }
 
     public void performLiquidation() {
-        openModalWindow("MedInventory - Liquidation", "/view/Liquidation.html", new LiquidationController());
+        openModalWindow("MedInventory - Liquidation", "/view/Liquidation.html", new LiquidationController(), true);
+        if (mainEngine != null) {
+            mainEngine.executeScript(
+                    "if(window.loadStats) window.loadStats(); if(window.loadAssets) window.loadAssets();");
+        }
     }
 
     public void reportDamage() {
@@ -177,10 +204,25 @@ public class MainWindowController {
 
                     if (controller instanceof HandoverWindowController) {
                         ((HandoverWindowController) controller).setStage(stage);
+                        // ((HandoverWindowController) controller).setCurrentUser(currentUser); // TODO:
+                        // Add if needed
                     } else if (controller instanceof ReportDamageController) {
                         ((ReportDamageController) controller).setStage(stage);
+                        // ((ReportDamageController) controller).setCurrentUser(currentUser);
                     } else if (controller instanceof StocktakeController) {
                         ((StocktakeController) controller).setStage(stage);
+                    } else if (controller instanceof LiquidationController) {
+                        ((LiquidationController) controller).setStage(stage);
+                        // ((LiquidationController) controller).setCurrentUser(currentUser);
+                    }
+
+                    // Generic way to pass user if controller has setCurrentUser method
+                    try {
+                        java.lang.reflect.Method setUserMethod = controller.getClass().getMethod("setCurrentUser",
+                                com.ltnc.model.User.class);
+                        setUserMethod.invoke(controller, currentUser);
+                    } catch (NoSuchMethodException e) {
+                        // ignore if controller doesn't support user
                     }
 
                     WebView webView = new WebView();
@@ -268,5 +310,30 @@ public class MainWindowController {
             json.put(obj);
         }
         return json.toString();
+    }
+
+    private Stage stage;
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
+    }
+
+    public void logout() {
+        System.out.println("Logging out...");
+        javafx.application.Platform.runLater(() -> {
+            try {
+                if (stage != null) {
+                    stage.close();
+                } else {
+                    System.err.println("Logout failed: Stage reference not set in controller.");
+                }
+
+                // Restart Login
+                Stage loginStage = new Stage();
+                new com.ltnc.Main().start(loginStage);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 }

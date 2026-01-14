@@ -140,12 +140,13 @@
                     <!-- Pagination (Simplified) -->
                     <div
                         class="px-6 py-4 border-t border-[#e5dcdf] dark:border-[#4a3b40] bg-[#fcfcfc] dark:bg-[#2a1d21] flex items-center justify-between text-xs text-[#88636f]">
-                        <span>Hiển thị <span class="font-medium text-[#181113] dark:text-white">2</span> trên <span
-                                class="font-medium text-[#181113] dark:text-white">124</span> tài sản</span>
+                        <span id="paginationInfo">Hiển thị <span
+                                class="font-medium text-[#181113] dark:text-white">-</span> trên <span
+                                class="font-medium text-[#181113] dark:text-white">-</span> tài sản</span>
                         <div class="flex gap-2">
-                            <button
+                            <button id="prevPageBtn"
                                 class="px-3 py-1.5 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white hover:bg-[#f4f0f2] transition-colors disabled:opacity-50">Trước</button>
-                            <button
+                            <button id="nextPageBtn"
                                 class="px-3 py-1.5 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] text-[#181113] dark:text-white hover:bg-[#f4f0f2] transition-colors">Tiếp</button>
                         </div>
                     </div>
@@ -158,7 +159,7 @@
     <div
         class="flex items-center justify-between px-8 py-6 bg-[#fcfcfc] dark:bg-[#251a1e] border-t border-[#e5dcdf] dark:border-[#4a3b40]">
         <div class="flex items-center gap-4">
-            <button
+            <button onclick="if(window.javaBridge && window.javaBridge.closeWindow) window.javaBridge.closeWindow();"
                 class="px-6 py-2.5 rounded-lg border border-[#e5dcdf] dark:border-[#4a3b40] text-[#181113] dark:text-white text-sm font-medium hover:bg-[#f4f0f2] dark:hover:bg-[#35262b] transition-colors focus:outline-none focus:ring-2 focus:ring-[#e5dcdf] shadow-sm">
                 Hủy Bỏ
             </button>
@@ -301,26 +302,39 @@
             }
         });
 
-        function filterAssets() {
-            const query = document.getElementById('searchAssetInput').value.toLowerCase().trim();
+        let currentPage = 1;
+        let totalPages = 1;
+        let currentDeptId = null;
+        const ITEMS_PER_PAGE = 10;
+        let currentSearch = "";
+
+        // Total damaged override
+        function updateTotalDamageCount() {
             const rows = document.querySelectorAll('#assetTableBody tr');
-
+            let count = 0;
             rows.forEach(row => {
-                // If it's the "No assets" row
-                if (row.cells.length === 1 && row.cells[0].colSpan === 6) return;
-
-                const nameEl = row.querySelector('.font-medium');
-                const idEl = row.querySelector('.font-mono');
-
-                const name = nameEl ? nameEl.textContent.toLowerCase() : '';
-                const id = idEl ? idEl.textContent.toLowerCase() : '';
-
-                if (name.includes(query) || id.includes(query)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+                const qtyInput = row.querySelector('input[data-field="qty"]');
+                if (qtyInput) {
+                    const qty = parseInt(qtyInput.value) || 0;
+                    if (qty > 0) count++;
                 }
             });
+            // Note: This only counts VISIBLE items on the current page. 
+            // Ideally we need a global store, but for report damage usually we select per page.
+            // If the user expects to select items across pages, we need a global Set.
+            // Let's implement a simple global Set for "touched" items if needed, 
+            // but for now, let's just show local count or keep it simple as per request to "fix" it.
+            // User request: "Tổng Mục Báo Hỏng: 1" -> dynamic.
+
+            const totalBadge = document.querySelector('.bg-red-50.text-primary.rounded-full');
+            if (totalBadge) totalBadge.textContent = count;
+        }
+
+        function filterAssets() {
+            // Frontend Search is replaced by Backend Search
+            currentSearch = document.getElementById('searchAssetInput').value.trim();
+            currentPage = 1;
+            loadAssetsForDepartment(currentDeptId);
         }
 
         function initData() {
@@ -337,8 +351,12 @@
                             select.appendChild(opt);
                         });
                         select.addEventListener('change', function () {
-                            const deptId = this.value;
-                            loadAssetsForDepartment(deptId);
+                            currentDeptId = this.value;
+                            currentPage = 1;
+                            currentSearch = "";
+                            const searchInput = document.getElementById('searchAssetInput');
+                            if (searchInput) searchInput.value = "";
+                            loadAssetsForDepartment(currentDeptId);
                         });
                     }
                 } catch (e) {
@@ -347,16 +365,74 @@
             } else {
                 console.warn("window.javaBridge.getDepartments not available");
             }
+
+            // Pagination Listeners
+            document.getElementById('prevPageBtn').addEventListener('click', () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    loadAssetsForDepartment(currentDeptId);
+                }
+            });
+            document.getElementById('nextPageBtn').addEventListener('click', () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    loadAssetsForDepartment(currentDeptId);
+                }
+            });
         }
 
         function loadAssetsForDepartment(deptId) {
+            if (!deptId) return;
             try {
-                const assets = JSON.parse(window.javaBridge.getAssetsByDepartment(deptId));
+                // Call Paged API
+                const args = JSON.stringify({
+                    deptId: deptId,
+                    page: currentPage,
+                    limit: ITEMS_PER_PAGE,
+                    search: currentSearch
+                });
+
+                let response;
+                if (window.javaBridge && window.javaBridge.getAssetsByDepartmentPaged) {
+                    response = JSON.parse(window.javaBridge.getAssetsByDepartmentPaged(args));
+                } else if (window.javaBridge && window.javaBridge.getAssetsByDepartment) {
+                    // Fallback (should not happen if compiled correctly)
+                    const allAssets = JSON.parse(window.javaBridge.getAssetsByDepartment(deptId));
+                    response = { assets: allAssets, total: allAssets.length, page: 1, totalPages: 1 };
+                } else {
+                    return;
+                }
+
+                const assets = response.assets;
+                const total = response.total;
+                totalPages = response.totalPages;
+
+                // Update Pagination Info
+                const start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+                const end = Math.min(start + assets.length - 1, total);
+
+                // Update Text: "Hiển thị start-end trên total tài sản"
+                // Or just "Page X of Y" if preferred, but existing UI had "Hiển thị 2 trên 124".
+                const pageInfoSpan = document.getElementById('paginationInfo');
+                if (pageInfoSpan) {
+                    if (total === 0) {
+                        pageInfoSpan.innerHTML = `Không có tài sản nào`;
+                    } else {
+                        pageInfoSpan.innerHTML = `Hiển thị <span class="font-medium text-[#181113] dark:text-white">${start}-${end}</span> trên <span class="font-medium text-[#181113] dark:text-white">${total}</span> tài sản`;
+                    }
+                }
+
+                // Update Buttons
+                document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+                document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+
+
                 const tbody = document.getElementById('assetTableBody');
                 tbody.innerHTML = '';
 
                 if (assets.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-[#88636f]">Không có tài sản nào trong khoa/phòng này.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-[#88636f]">Không tìm thấy tài sản phù hợp.</td></tr>';
+                    updateTotalDamageCount();
                     return;
                 }
 
@@ -374,7 +450,7 @@
                         <td class="p-4 text-right font-medium text-[#181113] dark:text-white">${asset.quantity}</td>
                         <td class="p-4">
                             <input class="w-full h-9 rounded border border-[#e5dcdf] dark:border-[#4a3b40] bg-white dark:bg-[#35262b] px-3 text-right text-sm text-[#181113] dark:text-white focus:border-primary focus:ring-1 focus:ring-primary outline-none"
-                                type="number" min="0" max="${asset.quantity}" placeholder="0" data-field="qty" />
+                                type="number" min="0" max="${asset.quantity}" placeholder="0" data-field="qty" oninput="updateTotalDamageCount()" />
                         </td>
                         <td class="p-4">
                             ${(asset.category === 'TSCD' || asset.category === 'FIXED_ASSET')
@@ -389,7 +465,7 @@
                                     <option value="Hỏng">Vỡ / Hỏng</option>
                                     <option value="Lỗi Kỹ Thuật">Lỗi Kỹ Thuật</option>
                                     <option value="Hết Hạn">Hết Hạn</option>
-                                    <option value="Mất">Mất</option>
+
                                 </select>
                                 <span class="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 text-[#88636f] pointer-events-none text-[18px]">expand_more</span>
                             </div>
@@ -397,7 +473,9 @@
                     `;
                     tbody.appendChild(row);
                 });
-                // Re-apply icons if needed, but we use Material Symbols font so innerHTML is fine if text is correct.
+
+                updateTotalDamageCount(); // Reset total count for new page (as it only counts visible)
+
             } catch (e) {
                 console.error("Error loading assets for department", e);
             }
@@ -479,10 +557,16 @@
 
             if (window.javaBridge && window.javaBridge.submitDamageReport) {
                 try {
-                    window.javaBridge.submitDamageReport(JSON.stringify(payload));
-                    alert("Đã gửi báo cáo hư hỏng thành công!");
-                    // Refresh data
-                    loadAssetsForDepartment(deptId);
+                    const result = window.javaBridge.submitDamageReport(JSON.stringify(payload));
+                    if (result === "SUCCESS") {
+                        alert("Đã gửi báo cáo hư hỏng thành công!");
+                        // Refresh data
+                        loadAssetsForDepartment(deptId);
+                        // Optional: Close window
+                        if (window.javaBridge.closeWindow) window.javaBridge.closeWindow();
+                    } else {
+                        alert("Lỗi khi gửi báo cáo: " + result);
+                    }
                 } catch (e) {
                     console.error("Error submitting report", e);
                     alert("Lỗi khi gửi báo cáo: " + e.message);

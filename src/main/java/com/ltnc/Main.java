@@ -11,49 +11,97 @@ import javafx.stage.Stage;
 import netscape.javascript.JSObject;
 
 public class Main extends Application {
-    private MainWindowController controller;
+
+    private Stage primaryStage;
 
     @Override
     public void start(Stage stage) {
+        this.primaryStage = stage;
         Database.init();
-        WebView webView = new WebView();
-        WebEngine engine = webView.getEngine();
-        engine.setJavaScriptEnabled(true);
-        engine.setUserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36");
+        showLogin();
+    }
 
-        // Prevent GC: Create strong reference
-        // REFACTOR: Use MainWindowController as the bridge directly
-        this.controller = new MainWindowController();
-        this.controller.setMainEngine(engine);
+    public void showLogin() {
+        try {
+            WebView webView = new WebView();
+            WebEngine engine = webView.getEngine();
+            engine.setJavaScriptEnabled(true);
+            engine.setUserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36");
 
-        engine.getLoadWorker().stateProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue == Worker.State.SUCCEEDED) {
-                JSObject window = (JSObject) engine.executeScript("window");
-                // Inject the strong reference
-                window.setMember("javaBridge", this.controller);
-                System.out.println("✓ Java object 'javaBridge' injected into WebView (Controller)");
-            }
-        });
+            com.ltnc.controller.LoginController controller = new com.ltnc.controller.LoginController();
 
-        // Debug: Listen for alerts from JS
-        engine.setOnAlert(event -> System.out.println("[ALERT] " + event.getData()));
+            // Setup Bridge
+            engine.getLoadWorker().stateProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue == Worker.State.SUCCEEDED) {
+                    JSObject window = (JSObject) engine.executeScript("window");
+                    window.setMember("javaBridge", controller);
+                }
+            });
 
-        // Debug: Listen for exceptions
-        engine.getLoadWorker().exceptionProperty().addListener((obs, oldExc, newExc) -> {
-            if (newExc != null) {
-                System.err.println("WebEngine Exception: " + newExc.getMessage());
-                newExc.printStackTrace();
-            }
-        });
+            engine.load(getClass().getResource("/view/Login.html").toExternalForm());
 
-        String url = getClass().getResource("/view/MainWindow.html").toExternalForm();
-        engine.load(url);
+            Scene scene = new Scene(webView, 420, 650); // Resize for login (Portrait)
+            primaryStage.setTitle("QL Kho ĐH Y Hà Nội - Đăng Nhập");
+            primaryStage.setScene(scene);
 
-        Scene scene = new Scene(webView);
-        stage.setTitle("LTNC - UI Preview");
-        stage.setScene(scene);
-        stage.setMaximized(true); // Set maximize TRƯỚC khi show
-        stage.show(); // Show SAU khi set maximize
+            // Remove maximized for login screen for better aesthetics
+            primaryStage.setMaximized(false);
+            primaryStage.setResizable(false);
+            primaryStage.centerOnScreen();
+
+            primaryStage.show();
+
+            // Handle Login Success
+            controller.setOnUserAuthenticated(user -> {
+                System.out.println("User authenticated: " + user.getName());
+                showMainWindow(user);
+            });
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void showMainWindow(com.ltnc.model.User user) {
+        try {
+            WebView webView = new WebView();
+            WebEngine engine = webView.getEngine();
+            engine.setJavaScriptEnabled(true);
+            engine.setUserAgent("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36");
+
+            MainWindowController controller = new MainWindowController();
+            controller.setMainEngine(engine);
+            controller.setCurrentUser(user); // Pass User
+            controller.setStage(primaryStage); // Pass Stage for logout logic
+
+            engine.getLoadWorker().stateProperty().addListener((observable, oldValue, newValue) -> {
+                if (newValue == Worker.State.SUCCEEDED) {
+                    JSObject window = (JSObject) engine.executeScript("window");
+                    window.setMember("javaBridge", controller);
+
+                    // Update UI with User Info
+                    // Assuming we have a JS function to update user info, or we can inject it via
+                    // DOM manipulation
+                    // We'll update the HTML to have IDs for name and dept
+                }
+            });
+
+            // Debug: Listen for alerts from JS
+            engine.setOnAlert(event -> System.out.println("[ALERT] " + event.getData()));
+
+            String url = getClass().getResource("/view/MainWindow.html").toExternalForm();
+            engine.load(url);
+
+            Scene scene = new Scene(webView);
+            primaryStage.setTitle("QL Kho ĐH Y Hà Nội - Trang chủ");
+            primaryStage.setScene(scene);
+            primaryStage.setResizable(true); // Enable resize for Main Window
+            primaryStage.setMaximized(true);
+            primaryStage.show();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {

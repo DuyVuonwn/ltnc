@@ -40,7 +40,7 @@ public class HandoverWindowController {
             obj.put("name", a.getName());
             obj.put("type", a.getAsset_category());
             obj.put("unit", a.getBase_unit());
-            obj.put("quantity", a.getTotal_quantity());
+            obj.put("quantity", a.getCurrent_stock());
             obj.put("manufacturer", a.getManufacturer());
             json.put(obj);
 
@@ -68,9 +68,20 @@ public class HandoverWindowController {
         return ""; // Not found
     }
 
+    private com.ltnc.model.User currentUser;
+
+    public void setCurrentUser(com.ltnc.model.User user) {
+        this.currentUser = user;
+    }
+
     public String saveHandover(String jsonPayload) {
         log("Saving handover: " + jsonPayload);
         try {
+            if (currentUser == null) {
+                return "Error: User not logged in";
+            }
+            String userId = currentUser.getId();
+
             JSONObject root = new JSONObject(jsonPayload);
             String decisionNo = root.optString("decisionNo", "");
             String deptId = root.optString("departmentId", "");
@@ -105,11 +116,11 @@ public class HandoverWindowController {
                         if (itemId.isEmpty())
                             return "Lỗi: Mã định danh (ItemID) thiếu cho serial " + detail.optString("serial");
 
-                        assetDAO.transferFixedAsset(assetId, itemId, deptId, reason, "");
+                        assetDAO.transferFixedAsset(assetId, itemId, deptId, reason, "", userId);
                     }
                 } else {
                     // Handle CCDC / Tool
-                    assetDAO.transferTool(assetId, deptId, qty, reason, "");
+                    assetDAO.transferTool(assetId, deptId, qty, reason, "", userId);
                 }
             }
             return "SUCCESS";

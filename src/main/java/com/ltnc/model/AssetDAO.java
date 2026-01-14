@@ -72,7 +72,7 @@ public class AssetDAO {
         }
     }
 
-    public void updateToolQuantityAfterStocktake(String assetId, int actualQty) {
+    public void updateToolQuantityAfterStocktake(String assetId, int actualQty, String userId) {
         String updateToolSql = "UPDATE tool SET quantity = ? WHERE asset_id = ? AND department_id = 'qtvt'";
         String insertToolSql = "INSERT INTO tool (id, asset_id, department_id, quantity) VALUES (?, ?, 'qtvt', ?)";
         String updateAssetSql = "UPDATE asset SET total_quantity = ? WHERE id = ?";
@@ -177,9 +177,9 @@ public class AssetDAO {
                 " EXISTS (SELECT 1 FROM fixed_asset_item f WHERE f.asset_id = a.id AND f.department_id != 'qtvt' AND f.department_id IS NOT NULL)) AS is_distributed, "
                 +
                 "CASE " +
-                "  WHEN a.asset_category = 'TOOL' THEN (SELECT COALESCE(SUM(quantity), 0) FROM tool WHERE asset_id = a.id AND department_id = 'qtvt') "
+                "  WHEN a.asset_category = 'TOOL' THEN (SELECT COALESCE(SUM(quantity), 0) FROM tool WHERE asset_id = a.id AND department_id = 'qtvt' AND status = 'IN_STOCK') "
                 +
-                "  ELSE (SELECT COUNT(*) FROM fixed_asset_item WHERE asset_id = a.id AND (department_id = 'qtvt' OR department_id IS NULL)) "
+                "  ELSE (SELECT COUNT(*) FROM fixed_asset_item WHERE asset_id = a.id AND (department_id = 'qtvt' OR department_id IS NULL) AND status != 'DAMAGED' AND status != 'LIQUIDATED') "
                 +
                 "END AS current_stock, " +
                 "a.manufacturer " +
@@ -266,10 +266,29 @@ public class AssetDAO {
 
     public List<Asset> searchAssets(String query) {
         List<Asset> assets = new ArrayList<>();
-        String sql = "SELECT id, name, asset_category, base_unit, total_quantity, manufacturer FROM asset WHERE name LIKE ? LIMIT 10";
+        // Calculate Stock:
+        // TSCD: Count Items in qtvt/NULL with IN_STOCK
+        // CCDC: Sum Quantity in qtvt with IN_STOCK (or NULL status)
+        String sql = "SELECT a.id, a.name, a.asset_category, a.base_unit, a.total_quantity, a.manufacturer, " +
+                "CASE " +
+                "  WHEN a.asset_category IN ('TSCD', 'FIXED_ASSET') THEN (" +
+                "    SELECT COUNT(*) FROM fixed_asset_item f " +
+                "    WHERE f.asset_id = a.id " +
+                "    AND (f.department_id = 'qtvt' OR f.department_id IS NULL) " +
+                "    AND f.status = 'IN_STOCK'" +
+                "  ) " +
+                "  ELSE (" +
+                "    SELECT COALESCE(SUM(t.quantity), 0) FROM tool t " +
+                "    WHERE t.asset_id = a.id " +
+                "    AND (t.department_id = 'qtvt' OR t.department_id IS NULL) " + // tools in warehouse might strictly
+                                                                                   // be 'qtvt'
+                "    AND (t.status = 'IN_STOCK' OR t.status IS NULL)" +
+                "  ) " +
+                "END as current_stock " +
+                "FROM asset a " +
+                "WHERE a.name LIKE ? LIMIT 10";
 
         try (Connection conn = Database.getConnection();
-
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, "%" + query + "%");
@@ -283,7 +302,7 @@ public class AssetDAO {
                         rs.getString("base_unit"),
                         rs.getInt("total_quantity"),
                         false,
-                        0,
+                        rs.getInt("current_stock"), // Populated from Query
                         rs.getString("manufacturer"));
 
                 assets.add(asset);
@@ -314,15 +333,20 @@ public class AssetDAO {
     // WRITE
     // =========================
     private String generateNextId(String prefix, String table, String idColumn) {
-        String sql = "SELECT " + idColumn + " FROM " + table + " ORDER BY " + idColumn + " DESC LIMIT 1";
+        String sql = "SELECT " + idColumn + " FROM " + table + " WHERE " + idColumn + " LIKE ? ORDER BY " + idColumn
+                + " DESC LIMIT 1";
         try (Connection conn = Database.getConnection();
-                PreparedStatement pstmt = conn.prepareStatement(sql);
-                ResultSet rs = pstmt.executeQuery()) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, prefix + "%");
+            ResultSet rs = pstmt.executeQuery();
 
             if (rs.next()) {
                 String lastId = rs.getString(1);
+                // System.out.println("DEBUG: Last ID found for " + prefix + ": " + lastId);
                 if (lastId.startsWith(prefix)) {
-                    String numPart = lastId.substring(prefix.length() + 1);
+                    String numPart = lastId.substring(prefix.length() + 1); // AST-000001 -> 000001
+                    // Handle "AST-000003" -> 3
                     try {
                         int currentNum = Integer.parseInt(numPart);
                         return String.format("%s-%06d", prefix, currentNum + 1);
@@ -342,7 +366,7 @@ public class AssetDAO {
     }
 
     private String generateFixedAssetTransactionId() {
-        return generateId("fixed_asset_transaction", "transaction_id", "FAT-");
+        return generateId("fixed_asset_transaction", "id", "FAT-");
     }
 
     private String generateId(String table, String col, String prefixBase) {
@@ -375,6 +399,9 @@ public class AssetDAO {
         String updateSql = "UPDATE asset SET total_quantity = ? WHERE id = ?";
         String insertSql = "INSERT INTO asset(id, name, asset_category, base_unit, total_quantity, manufacturer) VALUES(?, ?, ?, ?, ?, ?)";
 
+        System.out.println(
+                "DEBUG: upsertAsset Check -> Name: [" + asset.getName() + "], Mfr: [" + asset.getManufacturer() + "]");
+
         try (Connection conn = Database.getConnection();
                 PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
 
@@ -385,6 +412,7 @@ public class AssetDAO {
 
             if (rs.next()) {
                 String existingId = rs.getString("id");
+                System.out.println("DEBUG: Found Existing Asset ID: " + existingId);
                 int currentQty = rs.getInt("total_quantity");
                 int newQty = currentQty + asset.getTotal_quantity();
 
@@ -397,6 +425,7 @@ public class AssetDAO {
                 }
             } else {
                 String newId = generateNextId("AST", "asset", "id");
+                System.out.println("DEBUG: Creating NEW Asset ID: " + newId);
                 asset.setId(newId);
 
                 try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
@@ -463,8 +492,7 @@ public class AssetDAO {
     }
 
     public void logFixedAssetTransaction(String assetId, String itemId, String type, double price, String reason,
-            String note) {
-        String userId = "nv001";
+            String note, String userId) {
         String toDept = "qtvt";
 
         String sql = "INSERT INTO fixed_asset_transaction (id, asset_id, fixed_asset_item_id, transaction_type, transaction_date, "
@@ -494,8 +522,8 @@ public class AssetDAO {
         }
     }
 
-    public void transferFixedAsset(String assetId, String itemId, String toDept, String reason, String note) {
-        String userId = "nv001";
+    public void transferFixedAsset(String assetId, String itemId, String toDept, String reason, String note,
+            String userId) {
         // 1. Get current department
         String getFromDeptSql = "SELECT department_id FROM fixed_asset_item WHERE id = ?";
         String insertTransSql = "INSERT INTO fixed_asset_transaction (id, asset_id, fixed_asset_item_id, transaction_type, transaction_date, "
@@ -557,34 +585,44 @@ public class AssetDAO {
         }
     }
 
-    public void upsertTool(String assetId, String deptId, int addQty) {
-        String targetDept = "qtvt";
+    public void upsertTool(String assetId, String departmentId, int quantity) {
+        // Default to 'qtvt' and 'IN_STOCK' if not specified (Standard Import)
+        String dept = (departmentId == null) ? "qtvt" : departmentId;
+        String status = "IN_STOCK"; // Imported items are always IN_STOCK
 
-        String checkSql = "SELECT id, quantity FROM tool WHERE asset_id = ? AND department_id = ?";
-        String updateSql = "UPDATE tool SET quantity = quantity + ? WHERE id = ?";
-        String insertSql = "INSERT INTO tool(id, asset_id, department_id, quantity) VALUES(?, ?, ?, ?)";
+        String checkSql = "SELECT id FROM tool WHERE asset_id = ? AND department_id = ? AND status = ?";
+        String updateSql = "UPDATE tool SET quantity = quantity + ?, status = ? WHERE id = ?";
+        String insertSql = "INSERT INTO tool (id, asset_id, department_id, quantity, status) VALUES (?, ?, ?, ?, ?)";
 
-        try (Connection conn = Database.getConnection();
-                PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+        try (Connection conn = Database.getConnection()) {
+            // Check
+            String existingId = null;
+            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
+                checkStmt.setString(1, assetId);
+                checkStmt.setString(2, dept);
+                checkStmt.setString(3, status);
+                ResultSet rs = checkStmt.executeQuery();
+                if (rs.next()) {
+                    existingId = rs.getString("id");
+                }
+            }
 
-            checkStmt.setString(1, assetId);
-            checkStmt.setString(2, targetDept);
-            ResultSet rs = checkStmt.executeQuery();
-
-            if (rs.next()) {
-                String id = rs.getString("id");
+            if (existingId != null) {
+                // Update
                 try (PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
-                    updateStmt.setInt(1, addQty);
-                    updateStmt.setString(2, id);
+                    updateStmt.setInt(1, quantity);
+                    updateStmt.setString(2, status);
+                    updateStmt.setString(3, existingId);
                     updateStmt.executeUpdate();
                 }
             } else {
-                String newId = generateNextId("TOOL", "tool", "id");
+                // Insert
                 try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
-                    insertStmt.setString(1, newId);
+                    insertStmt.setString(1, generateNextId("TOOL", "tool", "id"));
                     insertStmt.setString(2, assetId);
-                    insertStmt.setString(3, targetDept);
-                    insertStmt.setInt(4, addQty);
+                    insertStmt.setString(3, dept);
+                    insertStmt.setInt(4, quantity);
+                    insertStmt.setString(5, status);
                     insertStmt.executeUpdate();
                 }
             }
@@ -594,9 +632,9 @@ public class AssetDAO {
         }
     }
 
-    public void logTransaction(String assetId, String type, int qty, double price, String note, String reason) {
+    public void logTransaction(String assetId, String type, int qty, double price, String note, String reason,
+            String userId) {
         if ("IMPORT".equals(type)) {
-            String userId = "nv001";
             String transId = generateTransactionId();
             // IMPORT: From NULL -> To 'qtvt'
             String sql = "INSERT INTO tool_transaction (id, asset_id, transaction_type, transaction_date, quantity, " +
@@ -621,134 +659,100 @@ public class AssetDAO {
         } else {
             // Deprecated or generic? Kept for backward compat if needed, but
             // logToolHandover supersedes for Handover.
-            logToolHandover(assetId, qty, "qtvt", null, note, reason);
+            logToolHandover(assetId, qty, "qtvt", null, note, reason, userId);
         }
     }
 
-    public void logToolHandover(String assetId, int qty, String fromDept, String toDept, String note, String reason) {
-        String userId = "nv001"; // Hardcoded user for now
+    public void logToolHandover(String assetId, int qty, String fromDept, String toDept, String note, String reason,
+            String userId) {
         String transId = generateTransactionId();
-
-        String sql = "INSERT INTO tool_transaction (id, asset_id, transaction_type, transaction_date, quantity, " +
-                "from_department_id, to_department_id, unit_price, user_id, reason, note) " +
-                "VALUES (?, ?, 'HANDOVER', datetime('now'), ?, ?, ?, 0, ?, ?, ?)"; // Price 0 for handover? Or fetch?
-                                                                                   // Assuming 0 or handled elsewhere.
-
-        // Update Stock Logic:
-        // Handover implies moving FROM one dept TO another.
-        // If fromDept is 'qtvt' (Warehouse), we decrement `asset.total_quantity`
-        // (Available Stock).
-        // If we tracked per-department stock in `tool` table, we'd update that too.
-        // For now, simpler logic: Decrement Global Stock in `asset` table.
-        String updateStockSql = "UPDATE asset SET total_quantity = total_quantity - ? WHERE id = ?";
-
-        try (Connection conn = Database.getConnection()) {
-            conn.setAutoCommit(false); // Transaction start
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                    PreparedStatement updateStmt = conn.prepareStatement(updateStockSql)) {
-
-                // 1. Log Transaction
-                pstmt.setString(1, transId);
-                pstmt.setString(2, assetId);
-                pstmt.setInt(3, qty);
-                pstmt.setString(4, fromDept);
-                pstmt.setString(5, toDept);
-                pstmt.setString(6, userId);
-                pstmt.setString(7, reason); // e.g. "Decision No..."
-                pstmt.setString(8, note);
-                pstmt.executeUpdate();
-
-                // 2. Decrement Stock
-                updateStmt.setInt(1, qty);
-                updateStmt.setString(2, assetId);
-                int rows = updateStmt.executeUpdate();
-
-                if (rows == 0) {
-                    throw new SQLException("Asset ID not found for stock update: " + assetId);
-                }
-
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e; // Re-throw to handle in controller
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error processing tool handover: " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException("Database error: " + e.getMessage());
-        }
-    }
-
-    public void transferTool(String assetId, String toDeptId, int qty, String reason, String note) {
-        String userId = "nv001";
-        String fromDept = "qtvt";
-        String transId = generateTransactionId();
-
-        String insertTransSql = "INSERT INTO tool_transaction (id, asset_id, transaction_type, transaction_date, quantity, "
-                +
+        String logSql = "INSERT INTO tool_transaction (id, asset_id, transaction_type, transaction_date, quantity, " +
                 "from_department_id, to_department_id, unit_price, user_id, reason, note) " +
                 "VALUES (?, ?, 'HANDOVER', datetime('now'), ?, ?, ?, 0, ?, ?, ?)";
 
-        String updateSourceToolSql = "UPDATE tool SET quantity = quantity - ? WHERE asset_id = ? AND department_id = ?";
-        // String updateSourceAssetSql = "UPDATE asset SET total_quantity =
-        // total_quantity - ? WHERE id = ?"; // REMOVED: Keep Total Global
+        // Source = 'qtvt' (Warehouse) -> Status 'IN_STOCK'
+        // Source = Other Dept -> Status 'IN_USE' (Usually handover is Warehouse ->
+        // Dept)
+        String sourceStatus = fromDept.equals("qtvt") ? "IN_STOCK" : "IN_USE";
+        // Target = 'qtvt' (Return) -> 'IN_STOCK'
+        // Target = Other Dept -> 'IN_USE'
+        String targetStatus = toDept.equals("qtvt") ? "IN_STOCK" : "IN_USE";
 
-        String checkDestToolSql = "SELECT id FROM tool WHERE asset_id = ? AND department_id = ?";
-        String updateDestToolSql = "UPDATE tool SET quantity = quantity + ? WHERE id = ?";
-        String insertDestToolSql = "INSERT INTO tool(id, asset_id, department_id, quantity) VALUES(?, ?, ?, ?)";
+        String selectSourceSql = "SELECT id, quantity FROM tool WHERE asset_id = ? AND department_id = ? AND status = ? AND quantity > 0 ORDER BY quantity ASC";
+        String updateSourceSql = "UPDATE tool SET quantity = ? WHERE id = ?";
+
+        String checkTargetSql = "SELECT id FROM tool WHERE asset_id = ? AND department_id = ? AND status = ?";
+        String updateTargetSql = "UPDATE tool SET quantity = quantity + ? WHERE id = ?";
+        String insertTargetSql = "INSERT INTO tool (id, asset_id, department_id, quantity, status) VALUES (?, ?, ?, ?, ?)";
 
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement transStmt = conn.prepareStatement(insertTransSql);
-                    PreparedStatement decToolStmt = conn.prepareStatement(updateSourceToolSql);
-                    // PreparedStatement decAssetStmt = conn.prepareStatement(updateSourceAssetSql);
-                    PreparedStatement checkDestStmt = conn.prepareStatement(checkDestToolSql)) {
+            try (PreparedStatement logStmt = conn.prepareStatement(logSql);
+                    PreparedStatement selectStmt = conn.prepareStatement(selectSourceSql);
+                    PreparedStatement updateSourceStmt = conn.prepareStatement(updateSourceSql)) {
 
-                // 1. Log Transaction
-                transStmt.setString(1, transId);
-                transStmt.setString(2, assetId);
-                transStmt.setInt(3, qty);
-                transStmt.setString(4, fromDept);
-                transStmt.setString(5, toDeptId);
-                transStmt.setString(6, userId);
-                transStmt.setString(7, reason);
-                transStmt.setString(8, note);
-                transStmt.executeUpdate();
+                // 1. Log
+                logStmt.setString(1, transId);
+                logStmt.setString(2, assetId);
+                logStmt.setInt(3, qty);
+                logStmt.setString(4, fromDept);
+                logStmt.setString(5, toDept);
+                logStmt.setString(6, userId);
+                logStmt.setString(7, reason);
+                logStmt.setString(8, note);
+                logStmt.executeUpdate();
 
-                // 2. Decrement Source (Warehouse)
-                // 2a. Decrement tool record for QTVT (if tracked per dept)
-                decToolStmt.setInt(1, qty);
-                decToolStmt.setString(2, assetId);
-                decToolStmt.setString(3, fromDept);
-                decToolStmt.executeUpdate();
+                // 2. Reduce Source (Batch logic)
+                selectStmt.setString(1, assetId);
+                selectStmt.setString(2, fromDept);
+                selectStmt.setString(3, sourceStatus);
+                ResultSet rs = selectStmt.executeQuery();
 
-                // 2b. Decrement Global Asset Stock -> REMOVED
+                int remaining = qty;
+                while (rs.next() && remaining > 0) {
+                    String tId = rs.getString("id");
+                    int currentQty = rs.getInt("quantity");
 
-                // 3. Increment Destination
-                checkDestStmt.setString(1, assetId);
-                checkDestStmt.setString(2, toDeptId);
-                ResultSet rs = checkDestStmt.executeQuery();
-
-                if (rs.next()) {
-                    // Update existing
-                    String destToolId = rs.getString("id");
-                    try (PreparedStatement updateDestStmt = conn.prepareStatement(updateDestToolSql)) {
-                        updateDestStmt.setInt(1, qty);
-                        updateDestStmt.setString(2, destToolId);
-                        updateDestStmt.executeUpdate();
+                    if (currentQty <= remaining) {
+                        remaining -= currentQty;
+                        updateSourceStmt.setInt(1, 0);
+                        updateSourceStmt.setString(2, tId);
+                        updateSourceStmt.executeUpdate();
+                    } else {
+                        updateSourceStmt.setInt(1, currentQty - remaining);
+                        updateSourceStmt.setString(2, tId);
+                        updateSourceStmt.executeUpdate();
+                        remaining = 0;
                     }
-                } else {
-                    // Insert new
-                    String newId = generateNextId("TOOL", "tool", "id");
-                    try (PreparedStatement insertDestStmt = conn.prepareStatement(insertDestToolSql)) {
-                        insertDestStmt.setString(1, newId);
-                        insertDestStmt.setString(2, assetId);
-                        insertDestStmt.setString(3, toDeptId);
-                        insertDestStmt.setInt(4, qty);
-                        insertDestStmt.executeUpdate();
+                }
+                rs.close();
+
+                if (remaining > 0) {
+                    throw new SQLException("Not enough quantity in source (Status: " + sourceStatus + ")");
+                }
+
+                // 3. Increase Target
+                try (PreparedStatement checkTargetStmt = conn.prepareStatement(checkTargetSql)) {
+                    checkTargetStmt.setString(1, assetId);
+                    checkTargetStmt.setString(2, toDept);
+                    checkTargetStmt.setString(3, targetStatus);
+                    ResultSet rsTarget = checkTargetStmt.executeQuery();
+
+                    if (rsTarget.next()) {
+                        try (PreparedStatement updateTargetStmt = conn.prepareStatement(updateTargetSql)) {
+                            updateTargetStmt.setInt(1, qty);
+                            updateTargetStmt.setString(2, rsTarget.getString("id"));
+                            updateTargetStmt.executeUpdate();
+                        }
+                    } else {
+                        try (PreparedStatement insertTargetStmt = conn.prepareStatement(insertTargetSql)) {
+                            insertTargetStmt.setString(1, generateNextId("TOOL", "tool", "id"));
+                            insertTargetStmt.setString(2, assetId);
+                            insertTargetStmt.setString(3, toDept);
+                            insertTargetStmt.setInt(4, qty);
+                            insertTargetStmt.setString(5, targetStatus);
+                            insertTargetStmt.executeUpdate();
+                        }
                     }
                 }
 
@@ -760,10 +764,15 @@ public class AssetDAO {
                 conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
-            System.err.println("Error transferring tool: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Error transferring tool: " + e.getMessage());
+            throw new RuntimeException("Handover failed: " + e.getMessage());
         }
+    }
+
+    public void transferTool(String assetId, String toDeptId, int qty, String reason, String note, String userId) {
+        // Delegate to logToolHandover for consistent status logic (Source:
+        // qtvt/IN_STOCK -> Target: Dept/IN_USE)
+        logToolHandover(assetId, qty, "qtvt", toDeptId, note, reason, userId);
     }
 
     public List<Map<String, Object>> getTransactions(String assetId) {
@@ -898,6 +907,9 @@ public class AssetDAO {
     }
 
     public List<Asset> getAssetsByDepartment(String deptId) {
+        // Deprecated or keep for backward compatibility?
+        // For now, redirect to paged with large limit or keep existing logic.
+        // Let's keep existing logic to avoid breaking other things if any.
         List<Asset> assets = new ArrayList<>();
         // 1. Get Tools (Aggregated)
         String toolSql = "SELECT t.asset_id, a.name, a.asset_category, a.base_unit, SUM(t.quantity) as quantity, a.manufacturer "
@@ -956,26 +968,162 @@ public class AssetDAO {
         return assets;
     }
 
-    public void reportToolDamage(String assetId, String deptId, int qty, String reason, String note) {
-        String userId = "nv001";
+    public List<Asset> getAssetsByDepartmentPaged(String deptId, int limit, int offset, String search) {
+        List<Asset> assets = new ArrayList<>();
+        String searchQuery = (search == null) ? "" : search.trim();
+        boolean hasSearch = !searchQuery.isEmpty();
+
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("SELECT * FROM (");
+
+        // Tool Subquery
+        sqlBuilder.append(
+                "SELECT t.asset_id, a.name, a.asset_category, a.base_unit, SUM(t.quantity) as quantity, a.manufacturer ");
+        sqlBuilder.append("FROM tool t JOIN asset a ON t.asset_id = a.id ");
+        sqlBuilder.append("WHERE t.department_id = ? AND t.quantity > 0 ");
+        if (hasSearch)
+            sqlBuilder.append("AND (a.name LIKE ? OR t.asset_id LIKE ?) ");
+        sqlBuilder.append("GROUP BY t.asset_id, a.name, a.asset_category, a.base_unit, a.manufacturer ");
+
+        sqlBuilder.append("UNION ALL ");
+
+        // Fixed Asset Subquery
+        sqlBuilder.append(
+                "SELECT f.asset_id, a.name, a.asset_category, a.base_unit, COUNT(f.id) as quantity, a.manufacturer ");
+        sqlBuilder.append("FROM fixed_asset_item f JOIN asset a ON f.asset_id = a.id ");
+        sqlBuilder.append("WHERE f.department_id = ? AND f.status = 'IN_USE' ");
+        if (hasSearch)
+            sqlBuilder.append("AND (a.name LIKE ? OR f.asset_id LIKE ?) ");
+        sqlBuilder.append("GROUP BY f.asset_id, a.name, a.asset_category, a.base_unit, a.manufacturer ");
+
+        sqlBuilder.append(") AS combined ");
+        sqlBuilder.append("ORDER BY name LIMIT ? OFFSET ?");
+
+        try (Connection conn = Database.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString())) {
+
+            int paramIndex = 1;
+
+            // Tool params
+            pstmt.setString(paramIndex++, deptId);
+            if (hasSearch) {
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+            }
+
+            // Fixed Asset params
+            pstmt.setString(paramIndex++, deptId);
+            if (hasSearch) {
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+            }
+
+            // Pagination
+            pstmt.setInt(paramIndex++, limit);
+            pstmt.setInt(paramIndex++, offset);
+
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                assets.add(new Asset(
+                        rs.getString("asset_id"),
+                        rs.getString("name"),
+                        rs.getString("asset_category"),
+                        rs.getString("base_unit"),
+                        0,
+                        true,
+                        rs.getInt("quantity"),
+                        rs.getString("manufacturer")));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching assets paged: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return assets;
+    }
+
+    public int countAssetsByDepartment(String deptId, String search) {
+        String searchQuery = (search == null) ? "" : search.trim();
+        boolean hasSearch = !searchQuery.isEmpty();
+
+        StringBuilder sqlBuilder = new StringBuilder();
+        sqlBuilder.append("SELECT COUNT(*) FROM (");
+
+        // Tool Subquery
+        sqlBuilder.append("SELECT t.asset_id ");
+        sqlBuilder.append("FROM tool t JOIN asset a ON t.asset_id = a.id ");
+        sqlBuilder.append("WHERE t.department_id = ? AND t.quantity > 0 ");
+        if (hasSearch)
+            sqlBuilder.append("AND (a.name LIKE ? OR t.asset_id LIKE ?) ");
+        sqlBuilder.append("GROUP BY t.asset_id "); // Only need to group to distinct assets
+
+        sqlBuilder.append("UNION ALL ");
+
+        // Fixed Asset Subquery
+        sqlBuilder.append("SELECT f.asset_id ");
+        sqlBuilder.append("FROM fixed_asset_item f JOIN asset a ON f.asset_id = a.id ");
+        sqlBuilder.append("WHERE f.department_id = ? AND f.status = 'IN_USE' ");
+        if (hasSearch)
+            sqlBuilder.append("AND (a.name LIKE ? OR f.asset_id LIKE ?) ");
+        sqlBuilder.append("GROUP BY f.asset_id ");
+
+        sqlBuilder.append(") AS combined");
+
+        try (Connection conn = Database.getConnection();
+                PreparedStatement pstmt = conn.prepareStatement(sqlBuilder.toString())) {
+
+            int paramIndex = 1;
+
+            // Tool params
+            pstmt.setString(paramIndex++, deptId);
+            if (hasSearch) {
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+            }
+
+            // Fixed Asset params
+            pstmt.setString(paramIndex++, deptId);
+            if (hasSearch) {
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+                pstmt.setString(paramIndex++, "%" + searchQuery + "%");
+            }
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error counting assets: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public void reportToolDamage(String assetId, String deptId, int qty, String reason, String note, String userId) {
         String transId = generateTransactionId();
 
-        // 1. Transaction Log: DAMAGE
+        // New Logic: Transfer damaged tools from 'deptId' to 'qtvt' (Warehouse)
+        // 1. Transaction Log: DAMAGE (from dept -> qtvt)
         String logSql = "INSERT INTO tool_transaction (id, asset_id, transaction_type, transaction_date, quantity, " +
                 "from_department_id, to_department_id, unit_price, user_id, reason, note) " +
                 "VALUES (?, ?, 'DAMAGE', datetime('now'), ?, ?, 'qtvt', 0, ?, ?, ?)";
 
-        // 2. Reduce Global Asset Quantity
-        String updateAssetSql = "UPDATE asset SET total_quantity = total_quantity - ? WHERE id = ?";
-
-        // 3. Select Tool Batches/Lots
-        String selectToolsSql = "SELECT id, quantity FROM tool WHERE asset_id = ? AND department_id = ? AND quantity > 0 ORDER BY quantity ASC";
+        // 2. Reduce Tool Quantity in Source Dept (from IN_USE)
+        // Source is usually a Department, so status is IN_USE.
+        // If reporting damage from Warehouse (qtvt), status is IN_STOCK?
+        // Let's assume most reports come from departments using tools (IN_USE).
+        // If deptId == 'qtvt', consume IN_STOCK.
+        String sourceStatus = deptId.equals("qtvt") ? "IN_STOCK" : "IN_USE";
+        String selectToolsSql = "SELECT id, quantity FROM tool WHERE asset_id = ? AND department_id = ? AND status = ? AND quantity > 0 ORDER BY quantity ASC";
         String updateToolSql = "UPDATE tool SET quantity = ? WHERE id = ?";
+
+        // 3. Increase Tool Quantity in Target Dept (qtvt) - Status DAMAGED
+        String checkTargetSql = "SELECT id FROM tool WHERE asset_id = ? AND department_id = 'qtvt' AND status = 'DAMAGED'";
+        String updateTargetSql = "UPDATE tool SET quantity = quantity + ? WHERE id = ?";
+        String insertTargetSql = "INSERT INTO tool(id, asset_id, department_id, quantity, status) VALUES(?, ?, 'qtvt', ?, 'DAMAGED')";
 
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
             try (PreparedStatement logStmt = conn.prepareStatement(logSql);
-                    PreparedStatement assetStmt = conn.prepareStatement(updateAssetSql);
                     PreparedStatement selectStmt = conn.prepareStatement(selectToolsSql);
                     PreparedStatement updateStmt = conn.prepareStatement(updateToolSql)) {
 
@@ -989,14 +1137,10 @@ public class AssetDAO {
                 logStmt.setString(7, note);
                 logStmt.executeUpdate();
 
-                // 2. Update Asset
-                assetStmt.setInt(1, qty);
-                assetStmt.setString(2, assetId);
-                assetStmt.executeUpdate();
-
-                // 3. Decrease Tool Quantity (across multiple batches if needed)
+                // 2. Decrease Tool Quantity in Source (IN_USE)
                 selectStmt.setString(1, assetId);
                 selectStmt.setString(2, deptId);
+                selectStmt.setString(3, sourceStatus);
                 ResultSet rs = selectStmt.executeQuery();
 
                 int remaining = qty;
@@ -1021,8 +1165,28 @@ public class AssetDAO {
                 rs.close();
 
                 if (remaining > 0) {
-                    throw new SQLException("Available tool quantity is insufficient for the requested amount ("
-                            + remaining + " missing).");
+                    throw new SQLException("Số lượng công cụ không đủ để báo hỏng (thiếu " + remaining + ").");
+                }
+
+                // 3. Increase Tool Quantity in Warehouse (qtvt) - DAMAGED
+                try (PreparedStatement checkTargetStmt = conn.prepareStatement(checkTargetSql)) {
+                    checkTargetStmt.setString(1, assetId);
+                    ResultSet rsTarget = checkTargetStmt.executeQuery();
+                    if (rsTarget.next()) {
+                        try (PreparedStatement updateTargetStmt = conn.prepareStatement(updateTargetSql)) {
+                            updateTargetStmt.setInt(1, qty);
+                            updateTargetStmt.setString(2, rsTarget.getString("id"));
+                            updateTargetStmt.executeUpdate();
+                        }
+                    } else {
+                        String newToolId = generateNextId("TOOL", "tool", "id");
+                        try (PreparedStatement insertTargetStmt = conn.prepareStatement(insertTargetSql)) {
+                            insertTargetStmt.setString(1, newToolId);
+                            insertTargetStmt.setString(2, assetId);
+                            insertTargetStmt.setInt(3, qty);
+                            insertTargetStmt.executeUpdate();
+                        }
+                    }
                 }
 
                 conn.commit();
@@ -1035,36 +1199,22 @@ public class AssetDAO {
         } catch (SQLException e) {
             System.err.println("Error reporting tool damage: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Error reporting damage: " + e.getMessage());
+            throw new RuntimeException("Lỗi báo hỏng công cụ: " + e.getMessage());
         }
     }
 
     public void reportFixedAssetDamage(String assetId, String deptId, List<String> identifiers, String reason,
-            String note) {
-        String userId = "nv001";
+            String note, String userId) {
 
-        // 1. Transaction Log: DAMAGE
-        String logSql = "INSERT INTO fixed_asset_transaction (transaction_id, asset_id, transaction_type, transaction_date, quantity, "
+        // 1. Transaction Log: DAMAGE (from dept -> qtvt)
+        String logSql = "INSERT INTO fixed_asset_transaction (id, asset_id, transaction_type, transaction_date, "
                 +
                 "from_department_id, to_department_id, unit_price, user_id, reason, note, fixed_asset_item_id) " +
-                "VALUES (?, ?, 'DAMAGE', datetime('now'), 1, ?, 'qtvt', 0, ?, ?, ?, ?)";
+                "VALUES (?, ?, 'DAMAGE', datetime('now'), ?, 'qtvt', 0, ?, ?, ?, ?)";
 
-        // 2. Update Fixed Asset Item Status
-        // Try ID first, then Serial Number. Scope to Asset and Department.
-        String findItemSql = "SELECT id FROM fixed_asset_item WHERE asset_id = ? AND department_id = ? AND (id = ? OR serial_number = ?)";
-        String updateItemSql = "UPDATE fixed_asset_item SET status = 'DAMAGED' WHERE id = ?";
-
-        // 3. Reduce Global Asset Quantity
-        // Actually, for fixed assets, total_quantity is usually count of items.
-        // If it's damaged but exists, do we reduce total_quantity?
-        // Usually NO, unless liquidated. If status is DAMAGED, it's still an asset,
-        // just broken.
-        // However, for TOOL, we reduced total_quantity because TOOL doesn't track
-        // status individually well in 'asset' table sum?
-        // Wait, for TOOL, user requested "Reduce asset.total_quantity".
-        // For TSCD, user requested "Update fixed_asset_item: status = 'DAMAGED'".
-        // User did NOT ask to reduce total_quantity for TSCD.
-        // So I will ONLY update status and log transaction.
+        // 2. Update Fixed Asset Item: Move to qtvt, Status DAMAGED
+        String findItemSql = "SELECT id, department_id, serial FROM fixed_asset_item WHERE asset_id = ? AND (id = ? OR serial = ?)";
+        String updateItemSql = "UPDATE fixed_asset_item SET department_id = 'qtvt', status = 'DAMAGED' WHERE id = ?";
 
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
@@ -1073,36 +1223,46 @@ public class AssetDAO {
                     PreparedStatement updateStmt = conn.prepareStatement(updateItemSql)) {
 
                 for (String ident : identifiers) {
-                    // Find Item ID
+                    // VALIDATION: Check if item exists AND belongs to the correct department
                     findStmt.setString(1, assetId);
-                    findStmt.setString(2, deptId);
+                    findStmt.setString(2, ident);
                     findStmt.setString(3, ident);
-                    findStmt.setString(4, ident);
                     ResultSet rs = findStmt.executeQuery();
 
                     String itemId = null;
+                    String currentDept = null;
+                    String serial = null;
+
                     if (rs.next()) {
                         itemId = rs.getString("id");
+                        currentDept = rs.getString("department_id");
+                        serial = rs.getString("serial");
                     }
                     rs.close();
 
-                    if (itemId != null) {
-                        // Log Transaction with new ID for each item
-                        logStmt.setString(1, generateFixedAssetTransactionId());
-                        logStmt.setString(2, assetId);
-                        logStmt.setString(3, deptId);
-                        logStmt.setString(4, userId);
-                        logStmt.setString(5, reason);
-                        logStmt.setString(6, note);
-                        logStmt.setString(7, itemId);
-                        logStmt.executeUpdate();
-
-                        // Update Status
-                        updateStmt.setString(1, itemId);
-                        updateStmt.executeUpdate();
-                    } else {
-                        throw new SQLException("Fixed Asset Item not found with ID/Serial: " + ident);
+                    if (itemId == null) {
+                        throw new IllegalArgumentException("Không tìm thấy tài sản với ID/Serial: " + ident);
                     }
+
+                    if (currentDept == null || !currentDept.equals(deptId)) {
+                        throw new IllegalArgumentException("Tài sản " + serial + " (" + ident
+                                + ") không thuộc phòng ban này (Đang ở: " + (currentDept == null ? "Kho" : currentDept)
+                                + ").");
+                    }
+
+                    // Log Transaction
+                    logStmt.setString(1, generateFixedAssetTransactionId());
+                    logStmt.setString(2, assetId);
+                    logStmt.setString(3, deptId);
+                    logStmt.setString(4, userId);
+                    logStmt.setString(5, reason);
+                    logStmt.setString(6, note);
+                    logStmt.setString(7, itemId);
+                    logStmt.executeUpdate();
+
+                    // Update Item
+                    updateStmt.setString(1, itemId);
+                    updateStmt.executeUpdate();
                 }
 
                 conn.commit();
@@ -1115,32 +1275,42 @@ public class AssetDAO {
         } catch (SQLException e) {
             System.err.println("Error reporting fixed asset damage: " + e.getMessage());
             e.printStackTrace();
-            throw new RuntimeException("Error reporting damage: " + e.getMessage());
+            throw new RuntimeException("Lỗi báo hỏng tài sản cố định: " + e.getMessage());
         }
     }
 
-    public List<Map<String, Object>> getLiquidationItems(String assetId, String deptId) {
-        System.out.println("DEBUG: getLiquidationItems called with assetId=" + assetId + ", deptId=" + deptId);
+    public List<Map<String, Object>> getLiquidationItems(String assetId, String deptId, String status) {
+        System.out.println("DEBUG: getLiquidationItems called with assetId=" + assetId + ", deptId=" + deptId
+                + ", status=" + status);
         List<Map<String, Object>> items = new ArrayList<>();
-        // Fetch items: IN_STOCK, DAMAGED, BROKEN.
-        // For qtvt, include NULL department_id.
+        // Fetch items: Filter by Status if provided
+        // Base Query
         String sql = "SELECT id, serial, status, department_id FROM fixed_asset_item " +
-                "WHERE asset_id = ? AND (department_id = ? OR (? = 'qtvt' AND department_id IS NULL)) " +
-                "AND status IN ('IN_STOCK', 'DAMAGED', 'BROKEN')";
+                "WHERE asset_id = ? AND (department_id = ? OR (? = 'qtvt' AND department_id IS NULL)) ";
+
+        // Append Status Filter
+        if (status != null && !status.isEmpty()) {
+            sql += "AND status = ? ";
+        } else {
+            sql += "AND status IN ('IN_STOCK', 'DAMAGED', 'BROKEN') ";
+        }
 
         try (Connection conn = Database.getConnection();
                 PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            pstmt.setString(1, assetId);
-            pstmt.setString(2, deptId);
-            pstmt.setString(3, deptId);
+            int paramIdx = 1;
+            pstmt.setString(paramIdx++, assetId);
+            pstmt.setString(paramIdx++, deptId);
+            pstmt.setString(paramIdx++, deptId);
+
+            if (status != null && !status.isEmpty()) {
+                pstmt.setString(paramIdx++, status);
+            }
 
             // System.out.println("DEBUG: Executing Query: " + sql);
 
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
-                System.out.println("DEBUG: Found Item: " + rs.getString("id") + " Status: " + rs.getString("status")
-                        + " Dept: " + rs.getString("department_id"));
                 Map<String, Object> item = new HashMap<>();
                 item.put("id", rs.getString("id"));
                 item.put("serial", rs.getString("serial"));
@@ -1154,22 +1324,22 @@ public class AssetDAO {
         return items;
     }
 
-    public List<Asset> getLiquidationAssets(String deptId) {
-        List<Asset> assets = new ArrayList<>();
-        // 1. Tools
-        String toolSql = "SELECT t.asset_id, a.name, a.asset_category, a.base_unit, SUM(t.quantity) as quantity, a.manufacturer "
+    public List<Map<String, Object>> getLiquidationAssets(String deptId) {
+        List<Map<String, Object>> assets = new ArrayList<>();
+        // 1. Tools (Group by Asset + Status)
+        String toolSql = "SELECT t.asset_id, a.name, a.asset_category, a.base_unit, COALESCE(t.status, 'IN_STOCK') as status, SUM(t.quantity) as quantity, a.manufacturer "
                 + "FROM tool t "
                 + "JOIN asset a ON t.asset_id = a.id "
                 + "WHERE t.department_id = ? AND t.quantity > 0 "
-                + "GROUP BY t.asset_id, a.name, a.asset_category, a.base_unit, a.manufacturer";
+                + "GROUP BY t.asset_id, a.name, a.asset_category, a.base_unit, a.manufacturer, COALESCE(t.status, 'IN_STOCK')";
 
-        // 2. Fixed Assets (Include IN_STOCK, DAMAGED, BROKEN)
-        String fixedSql = "SELECT f.asset_id, a.name, a.asset_category, a.base_unit, COUNT(f.id) as quantity, a.manufacturer "
+        // 2. Fixed Assets (Group by Asset + Status)
+        String fixedSql = "SELECT f.asset_id, a.name, a.asset_category, a.base_unit, f.status, COUNT(f.id) as quantity, a.manufacturer "
                 + "FROM fixed_asset_item f "
                 + "JOIN asset a ON f.asset_id = a.id "
                 + "WHERE (f.department_id = ? OR (? = 'qtvt' AND f.department_id IS NULL)) "
                 + "AND f.status IN ('IN_STOCK', 'DAMAGED', 'BROKEN') "
-                + "GROUP BY f.asset_id, a.name";
+                + "GROUP BY f.asset_id, a.name, a.asset_category, a.base_unit, a.manufacturer, f.status";
 
         try (Connection conn = Database.getConnection()) {
             // Tools
@@ -1177,12 +1347,14 @@ public class AssetDAO {
                 start.setString(1, deptId);
                 ResultSet rs = start.executeQuery();
                 while (rs.next()) {
-                    assets.add(new Asset(
-                            rs.getString("asset_id"),
-                            rs.getString("name"),
-                            rs.getString("asset_category"),
-                            rs.getString("base_unit"),
-                            0, true, rs.getInt("quantity"), rs.getString("manufacturer")));
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", rs.getString("asset_id"));
+                    map.put("name", rs.getString("name"));
+                    map.put("category", rs.getString("asset_category"));
+                    map.put("unit", rs.getString("base_unit"));
+                    map.put("status", rs.getString("status"));
+                    map.put("quantity", rs.getInt("quantity"));
+                    assets.add(map);
                 }
             }
             // Fixed Assets
@@ -1191,12 +1363,14 @@ public class AssetDAO {
                 start.setString(2, deptId);
                 ResultSet rs = start.executeQuery();
                 while (rs.next()) {
-                    assets.add(new Asset(
-                            rs.getString("asset_id"),
-                            rs.getString("name"),
-                            rs.getString("asset_category"),
-                            rs.getString("base_unit"),
-                            0, true, rs.getInt("quantity"), rs.getString("manufacturer")));
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", rs.getString("asset_id"));
+                    map.put("name", rs.getString("name"));
+                    map.put("category", rs.getString("asset_category"));
+                    map.put("unit", rs.getString("base_unit"));
+                    map.put("status", rs.getString("status")); // Already set in DB for Fixed Assets
+                    map.put("quantity", rs.getInt("quantity"));
+                    assets.add(map);
                 }
             }
         } catch (SQLException e) {
@@ -1205,15 +1379,18 @@ public class AssetDAO {
         return assets;
     }
 
-    public void reportToolLiquidation(String assetId, String deptId, int qty, double price, String reason,
-            String note) {
-        String userId = "nv001";
+    public void liquidateTool(String assetId, int qty, double price, String reason, String note, String userId) {
         String transId = generateTransactionId();
         String logSql = "INSERT INTO tool_transaction (id, asset_id, transaction_type, transaction_date, quantity, " +
                 "from_department_id, to_department_id, unit_price, user_id, reason, note) " +
-                "VALUES (?, ?, 'LIQUIDATION', datetime('now'), ?, ?, 'qtvt', ?, ?, ?, ?)";
+                "VALUES (?, ?, 'DISPOSAL', datetime('now'), ?, 'qtvt', NULL, ?, ?, ?, ?)"; // From qtvt to NULL
+
         String updateAssetSql = "UPDATE asset SET total_quantity = total_quantity - ? WHERE id = ?";
-        String selectToolsSql = "SELECT id, quantity FROM tool WHERE asset_id = ? AND department_id = ? AND quantity > 0 ORDER BY quantity ASC";
+
+        // Allow liquidating from IN_STOCK, DAMAGED, or NULL
+        String selectToolsSql = "SELECT id, quantity FROM tool WHERE asset_id = ? AND department_id = 'qtvt' " +
+                "AND (status = 'IN_STOCK' OR status = 'DAMAGED' OR status IS NULL) " +
+                "AND quantity > 0 ORDER BY quantity ASC";
         String updateToolSql = "UPDATE tool SET quantity = ? WHERE id = ?";
 
         try (Connection conn = Database.getConnection()) {
@@ -1222,30 +1399,34 @@ public class AssetDAO {
                     PreparedStatement assetStmt = conn.prepareStatement(updateAssetSql);
                     PreparedStatement selectStmt = conn.prepareStatement(selectToolsSql);
                     PreparedStatement updateStmt = conn.prepareStatement(updateToolSql)) {
+
+                // 1. Log Transaction
                 logStmt.setString(1, transId);
                 logStmt.setString(2, assetId);
                 logStmt.setInt(3, qty);
-                logStmt.setString(4, deptId);
-                logStmt.setDouble(5, price);
-                logStmt.setString(6, userId);
-                logStmt.setString(7, reason);
-                logStmt.setString(8, note);
+                logStmt.setDouble(4, price);
+                logStmt.setString(5, userId);
+                logStmt.setString(6, reason);
+                logStmt.setString(7, note);
                 logStmt.executeUpdate();
 
+                // 2. Reduce Master Quantity
                 assetStmt.setInt(1, qty);
                 assetStmt.setString(2, assetId);
                 assetStmt.executeUpdate();
 
+                // 3. Reduce Stock in Warehouse (qtvt)
                 selectStmt.setString(1, assetId);
-                selectStmt.setString(2, deptId);
                 ResultSet rs = selectStmt.executeQuery();
+
                 int remaining = qty;
                 while (rs.next() && remaining > 0) {
                     String tId = rs.getString("id");
                     int currentQty = rs.getInt("quantity");
+
                     if (currentQty <= remaining) {
                         remaining -= currentQty;
-                        updateStmt.setInt(1, 0);
+                        updateStmt.setInt(1, 0); // Deplete row
                         updateStmt.setString(2, tId);
                         updateStmt.executeUpdate();
                     } else {
@@ -1256,8 +1437,11 @@ public class AssetDAO {
                     }
                 }
                 rs.close();
-                if (remaining > 0)
-                    throw new SQLException("Insufficient quantity.");
+
+                if (remaining > 0) {
+                    throw new SQLException("Không đủ số lượng trong kho để thanh lý (thiếu " + remaining + ").");
+                }
+
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
@@ -1267,156 +1451,68 @@ public class AssetDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            throw new RuntimeException("Error: " + e.getMessage());
+            throw new RuntimeException("Lỗi thanh lý công cụ: " + e.getMessage());
         }
     }
 
-    public void reportFixedAssetLiquidation(String assetId, String deptId, List<String> identifiers, double price,
-            String reason, String note) {
-        String userId = "nv001";
-        String logSql = "INSERT INTO fixed_asset_transaction (transaction_id, asset_id, transaction_type, transaction_date, quantity, "
+    public void liquidateFixedAsset(String assetId, List<String> identifiers, double price, String reason, String note,
+            String userId) {
+        String logSql = "INSERT INTO fixed_asset_transaction (id, asset_id, transaction_type, transaction_date, "
                 + "from_department_id, to_department_id, unit_price, user_id, reason, note, fixed_asset_item_id) " +
-                "VALUES (?, ?, 'LIQUIDATION', datetime('now'), 1, ?, 'qtvt', ?, ?, ?, ?, ?)";
-        String findItemSql = "SELECT id FROM fixed_asset_item WHERE asset_id = ? AND department_id = ? AND (id = ? OR serial_number = ?)";
+                "VALUES (?, ?, 'DISPOSAL', datetime('now'), 'qtvt', NULL, ?, ?, ?, ?, ?)"; // From qtvt to NULL
+
+        String findItemSql = "SELECT id, department_id, serial FROM fixed_asset_item WHERE asset_id = ? AND (id = ? OR serial = ?)";
         String updateItemSql = "UPDATE fixed_asset_item SET status = 'LIQUIDATED' WHERE id = ?";
+        String updateAssetSql = "UPDATE asset SET total_quantity = total_quantity - 1 WHERE id = ?";
 
         try (Connection conn = Database.getConnection()) {
             conn.setAutoCommit(false);
             try (PreparedStatement logStmt = conn.prepareStatement(logSql);
                     PreparedStatement findStmt = conn.prepareStatement(findItemSql);
-                    PreparedStatement updateStmt = conn.prepareStatement(updateItemSql)) {
+                    PreparedStatement updateStmt = conn.prepareStatement(updateItemSql);
+                    PreparedStatement assetStmt = conn.prepareStatement(updateAssetSql)) {
+
                 for (String ident : identifiers) {
                     findStmt.setString(1, assetId);
-                    findStmt.setString(2, deptId);
+                    findStmt.setString(2, ident);
                     findStmt.setString(3, ident);
-                    findStmt.setString(4, ident);
                     ResultSet rs = findStmt.executeQuery();
+
                     String itemId = null;
-                    if (rs.next())
+                    String currentDept = null;
+                    String serial = null;
+
+                    if (rs.next()) {
                         itemId = rs.getString("id");
+                        currentDept = rs.getString("department_id");
+                        serial = rs.getString("serial");
+                    }
                     rs.close();
 
-                    if (itemId != null) {
-                        logStmt.setString(1, generateFixedAssetTransactionId());
-                        logStmt.setString(2, assetId);
-                        logStmt.setString(3, deptId);
-                        logStmt.setDouble(4, price);
-                        logStmt.setString(5, userId);
-                        logStmt.setString(6, reason);
-                        logStmt.setString(7, note);
-                        logStmt.setString(8, itemId);
-                        logStmt.executeUpdate();
-
-                        updateStmt.setString(1, itemId);
-                        updateStmt.executeUpdate();
+                    if (itemId == null) {
+                        throw new IllegalArgumentException("Không tìm thấy tài sản (TSCD) với ID/Serial: " + ident);
                     }
-                }
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw new RuntimeException("Error: " + e.getMessage());
-        }
-    }
+                    // Optional: Ensure it's in qtvt (Warehouse) before liquidating?
+                    // Currently assume users select logical items (which filter query provides).
+                    // If strict: verify currentDept == 'qtvt'.
 
-    public void adjustToolStock(String assetId, int newQty) {
-        // 1. Calculate Difference
-        // We need current global stock to act? Or just force update?
-        // Logic:
-        // We assume 'qtvt' is the main warehouse where we adjust buffers.
-        // But if total_quantity != newQty, where do we add/remove?
-        // Default: Adjust 'qtvt' quantity.
+                    // 1. Log Transaction
+                    logStmt.setString(1, generateFixedAssetTransactionId());
+                    logStmt.setString(2, assetId);
+                    logStmt.setDouble(3, price);
+                    logStmt.setString(4, userId);
+                    logStmt.setString(5, reason);
+                    logStmt.setString(6, note);
+                    logStmt.setString(7, itemId);
+                    logStmt.executeUpdate();
 
-        String getQtvtQtySql = "SELECT quantity FROM tool WHERE asset_id = ? AND department_id = 'qtvt'";
-        String updateToolSql = "UPDATE tool SET quantity = ? WHERE asset_id = ? AND department_id = 'qtvt'";
-        String insertToolSql = "INSERT INTO tool(id, asset_id, department_id, quantity) VALUES(?, ?, 'qtvt', ?)";
-        String updateAssetSql = "UPDATE asset SET total_quantity = ? WHERE id = ?";
+                    // 2. Update Item Status
+                    updateStmt.setString(1, itemId);
+                    updateStmt.executeUpdate();
 
-        // To update asset.total_quantity properly, we need sum of all depts + qtvt.
-        // Easier:
-        // old_total = (qtvt_old + distributed)
-        // new_total = (qtvt_new + distributed)
-        // diff = new_total - old_total = qtvt_new - qtvt_old
-        // So just need qtvt_old.
-
-        try (Connection conn = Database.getConnection()) {
-            conn.setAutoCommit(false);
-            try {
-                int oldQtvtQty = 0;
-                boolean existsInQtvt = false;
-
-                try (PreparedStatement getStmt = conn.prepareStatement(getQtvtQtySql)) {
-                    getStmt.setString(1, assetId);
-                    ResultSet rs = getStmt.executeQuery();
-                    if (rs.next()) {
-                        oldQtvtQty = rs.getInt("quantity");
-                        existsInQtvt = true;
-                    }
-                }
-
-                // Wait. newQty passed from UI is "Total Actual Stock" (GLOBAL).
-                // UI shows "SL Sổ Sách" which is `asset.total_quantity`.
-                // User enters "SL Thực Tế" which is NEW `asset.total_quantity`.
-
-                // So NEW_TOTAL = newQty.
-                // We know Distributed = TOTAL - QTVT.
-                // So NEW_QTVT = NEW_TOTAL - Distributed = newQty - (Old_Total - Old_Qtvt).
-
-                int currentTotal = 0;
-                String getTotalSql = "SELECT total_quantity FROM asset WHERE id = ?";
-                try (PreparedStatement p = conn.prepareStatement(getTotalSql)) {
-                    p.setString(1, assetId);
-                    ResultSet rs = p.executeQuery();
-                    if (rs.next())
-                        currentTotal = rs.getInt(1);
-                }
-
-                int distributed = currentTotal - oldQtvtQty;
-                int newQtvtQty = newQty - distributed;
-
-                if (newQtvtQty < 0) {
-                    // Theoretically possible if textfield input is smaller than distributed amount.
-                    // In valid scenario, this implies we lost distributed items?
-                    // For simplicity, let's clamp QTVT to 0 and reduce distributed?
-                    // No, just refuse or set QTVT to negative (warn)?
-                    // Let's set QTVT to newQtvtQty even if negative to reflect missing stock, or
-                    // clamp 0.
-                    // Better: Set to newQtvtQty.
-                }
-
-                if (existsInQtvt) {
-                    try (PreparedStatement up = conn.prepareStatement(updateToolSql)) {
-                        up.setInt(1, newQtvtQty);
-                        up.setString(2, assetId);
-                        up.executeUpdate();
-                    }
-                } else {
-                    String newId = generateNextId("TOOL", "tool", "id");
-                    try (PreparedStatement in = conn.prepareStatement(insertToolSql)) {
-                        in.setString(1, newId);
-                        in.setString(2, assetId);
-                        in.setInt(3, newQtvtQty);
-                        in.executeUpdate();
-                    }
-                }
-
-                try (PreparedStatement upA = conn.prepareStatement(updateAssetSql)) {
-                    upA.setInt(1, newQty);
-                    upA.setString(2, assetId);
-                    upA.executeUpdate();
-                }
-
-                // Log Transaction (Adjustment)
-                String transType = "STOCKTAKE_ADJUST";
-                int adjustment = newQty - currentTotal;
-                if (adjustment != 0) {
-                    logTransaction(assetId, transType, Math.abs(adjustment), 0, "Stocktake Adjustment",
-                            "System Auto-Correction");
+                    // 3. Reduce Master Quantity
+                    assetStmt.setString(1, assetId);
+                    assetStmt.executeUpdate();
                 }
 
                 conn.commit();
@@ -1428,15 +1524,9 @@ public class AssetDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            System.err.println("Error adjusting tool stock: " + e.getMessage());
+            throw new RuntimeException("Lỗi thanh lý tài sản cố định: " + e.getMessage());
         }
     }
 
-    public void logAnalysisNote(String assetId, String type, String content) {
-        // Since we don't have a generic "Log" table visible here, we can use a print or
-        // a specific log file
-        // or abuse the transaction table with 0 quantity.
-        // Let's use transaction table to record the discrepancy note.
-        logTransaction(assetId, "STOCK_NOTE", 0, 0, content, type);
-    }
+    // Removed dead code (adjustToolStock, logAnalysisNote)
 }
